@@ -3,139 +3,131 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 
+// Screen & Window
+static inline void tr_clear(void) {
+    printf("\x1b[2J");
+}
+
+// Cursor
+static inline void tr_move(int x, int y) {
+    printf("\x1b[%d;%dH", y, x);
+}
+static inline void tr_cursor_visible(bool visible) {
+    if (visible)
+        printf("\x1b[?25h");
+    else
+        printf("\x1b[?25l");
+}
+
+// Effects
 typedef enum TrEffect {
-    TR_PLAIN = -1,
-    TR_BOLD = 1,
-    TR_DIM = 2,
-    TR_ITALIC = 3,
-    TR_UNDERLINE = 4,
-    TR_BLINK = 5,
-    TR_REVERSE = 7,
-    TR_HIDE = 8,
-    TR_STRIKETHROUGH = 9,
-    TR_TEXTBRIGHT = -2,
-    TR_BGBRIGHT = -3,
+    TR_EFFECT_NONE = 0,
+    TR_BOLD = 1 << 0,
+    TR_DIM = 1 << 1,
+    TR_UNDERLINE = 1 << 2,
+    TR_BLINK = 1 << 3,
+    TR_INVERT = 1 << 4,
+    TR_HIDDEN = 1 << 5,
+    TR_STRIKETHROUGH = 1 << 6,
 } TrEffect;
-
-typedef enum TrColor {
-    TR_BLACK = 30,
-    TR_RED = 31,
-    TR_GREEN = 32,
-    TR_YELLOW = 33,
-    TR_BLUE = 34,
-    TR_MAGENTA = 35,
-    TR_CYAN = 36,
-    TR_WHITE = 37,
-    TR_DEFAULT = 39
-} TrColor;
-
-typedef struct TrStyle {
-    TrEffect effects;
-    TrColor text_color;
-    TrColor bg_color;
-} TrStyle;
-
-typedef struct TrChar {
-    char data;
-    TrStyle style;
-} TrChar;
-
-typedef struct TrImage {
-    TrChar *data;
-    int width;
-    int height;
-} TrImage;
-
-void tr_char_init(TrChar *c);
-
-TrImage *tr_image_create(int width, int height);
-void tr_image_fill(TrImage *image, char ch, TrEffect effects, TrColor text_color, TrColor bg_color);
-void tr_image_free(TrImage *image);
-void tr_image_draw(const TrImage *image);
-
-void tr_style_begin(TrEffect effects, TrColor text_color, TrColor bg_color);
-void tr_style_end(void);
-bool tr_style_compare(const TrStyle *a, const TrStyle *b);
-
-#ifdef TRENDERER_IMPLEMENTATION
-void tr_char_init(TrChar *c) {
-    if (c == NULL)
+static inline void tr_effect(TrEffect e) {
+    if (e == TR_EFFECT_NONE) {
+        printf("\x1b[0m");
         return;
-    c->data = ' ';
-    c->style.effects = TR_PLAIN;
-    c->style.text_color = TR_DEFAULT;
-    c->style.bg_color = TR_DEFAULT;
-}
-TrImage *tr_image_create(int width, int height) {
-    TrImage *image = malloc(sizeof(TrImage));
-    image->data = malloc(sizeof(TrChar) * (width + height));
-    image->width = width;
-    image->height = height;
-
-    return image;
-}
-void tr_image_fill(TrImage *image, char ch, TrEffect effects, TrColor text_color, TrColor bg_color) {
-    for (int i = 0; i < image->width * image->height; i += 1) {
-        image->data[i].data = ch;
-        image->data[i].style.effects = effects;
-        image->data[i].style.text_color = text_color;
-        image->data[i].style.bg_color = bg_color;
     }
+    if (e & TR_BOLD)
+        printf("\x1b[1m");
+
+    if (e & TR_DIM)
+        printf("\x1b[2m");
+
+    if (e & TR_UNDERLINE)
+        printf("\x1b[4m");
+
+    if (e & TR_BLINK)
+        printf("\x1b[5m");
+
+    if (e & TR_INVERT)
+        printf("\x1b[7m");
+
+    if (e & TR_HIDDEN)
+        printf("\x1b[8m");
+
+    if (e & TR_STRIKETHROUGH)
+        printf("\x1b[9m");
 }
-void tr_image_free(TrImage *image) {
-    free(image->data);
-    free(image);
+static inline void tr_reset(void) {
+    printf("\x1b[0m");
 }
-void tr_image_draw(const TrImage *image) {
-    TrStyle curr = {
-        .effects = TR_PLAIN,
-        .text_color = TR_DEFAULT,
-        .bg_color = TR_DEFAULT};
 
-    for (int y = 0; y < image->height; y += 1) {
-        tr_style_begin(curr.effects, curr.text_color, curr.bg_color);
-        for (int x = 0; x < image->width; x += 1) {
-            int i = y * image->height + x;
+// Colors
+typedef enum TrColor {
+    TR_BLACK = 0,
+    TR_RED = 1,
+    TR_GREEN = 2,
+    TR_YELLOW = 3,
+    TR_BLUE = 4,
+    TR_MAGENTA = 5,
+    TR_CYAN = 6,
+    TR_WHITE = 7,
+} TrColor;
+static inline void tr_fg_color(TrColor c, bool bright) {
+    printf("\x1b[%dm", bright ? (90 + (int)c) : (30 + (int)c));
+}
+static inline void tr_bg_color(TrColor c, bool bright) {
+    printf("\x1b[%dm", bright ? (100 + (int)c) : (40 + (int)c));
+}
 
-            if (tr_style_compare(&image->data[i].style, &curr))
-                continue;
+// Abstraction
+typedef struct TrChar {
+    char ch;
+    TrEffect effect;
+    TrColor fg_color;
+    bool fg_bright;
+    TrColor bg_color;
+    bool bg_bright;
+} TrChar;
+static inline void tr_char_draw(TrChar c) {
+    tr_effect(c.effect);
+    tr_fg_color(c.fg_color, c.fg_bright);
+    tr_bg_color(c.bg_color, c.bg_bright);
+}
+static inline void tr_sprite_draw(TrChar *sprite, int width, int height) {
+    TrEffect curr_effect = TR_EFFECT_NONE;
 
-            tr_style_end();
+    TrColor curr_fg_color = TR_WHITE;
+    bool curr_fg_bright = false;
 
-            curr.effects = image->data[i].style.effects;
-            curr.text_color = image->data[i].style.text_color;
-            curr.bg_color = image->data[i].style.bg_color;
+    TrColor curr_bg_color = TR_BLACK;
+    bool curr_bg_bright = false;
 
-            tr_style_begin(curr.effects, curr.text_color, curr.bg_color);
+    for (int y = 0; y < height; y += 1) {
+        for (int x = 0; x < width; x += 1) {
+            if (curr_effect != sprite[x * y].effect) {
+                curr_effect = sprite[x * y].effect;
+
+                tr_effect(curr_effect);
+            }
+
+            if (curr_fg_color != sprite[x * y].fg_color || curr_fg_bright != sprite[x * y].fg_bright) {
+                curr_fg_color = sprite[x * y].fg_color;
+                curr_fg_bright = sprite[x * y].fg_bright;
+
+                tr_fg_color(curr_fg_color, curr_fg_bright);
+            }
+
+            if (curr_bg_color != sprite[x * y].bg_color || curr_bg_bright != sprite[x * y].bg_bright) {
+                curr_bg_color = sprite[x * y].bg_color;
+                curr_bg_bright = sprite[x * y].bg_bright;
+
+                tr_bg_color(curr_bg_color, curr_bg_bright);
+            }
+
+            printf("%c", sprite[x * y].ch);
         }
-        tr_style_end();
+        tr_reset();
         printf("\n");
     }
 }
-void tr_style_begin(TrEffect effects, TrColor text_color, TrColor bg_color) {
-    int e = (int)effects;
-    int t = (int)text_color;
-    if (effects == TR_TEXTBRIGHT)
-        t += 60;
-    int b = (int)bg_color + 10;
-    if (effects == TR_BGBRIGHT)
-        b += 60;
-    printf("\x1b[%d;%dm", t, b);
-}
-void tr_style_end(void) {
-    printf("\x1b[0m");
-}
-bool tr_style_compare(const TrStyle *a, const TrStyle *b) {
-    if (a->effects != b->effects)
-        return false;
-    if (a->text_color != b->text_color)
-        return false;
-    if (a->bg_color != b->bg_color)
-        return false;
-    return true;
-}
-#endif
-
 #endif

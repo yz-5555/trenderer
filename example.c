@@ -1,14 +1,25 @@
-#define TRENDERER_IMPLEMENTATION
 #include "trenderer.h"
 #include <stdio.h>
 
-int main(void) {
-    int width = 15;
-    int height = 5;
+#define W 10
+#define H 10
 
-    tr_style_begin(TR_TEXTBRIGHT, TR_RED, TR_DEFAULT);
-    printf("Hello!");
-    tr_style_end();
-    printf("\x1b[5;3;1;4;9mHello, World!\x1b[0m");
+int main(void) {
+    TrChar sprite[W * H];
+    for (int y = 0; y < H; y += 1) {
+        for (int x = 0; x < W; x += 1) {
+            sprite[x * y].bg_color = TR_GREEN;
+            sprite[x * y].bg_bright = false;
+
+            sprite[x * y].fg_color = TR_BLACK;
+            sprite[x * y].fg_bright = true;
+
+            sprite[x * y].effect = TR_BOLD | TR_UNDERLINE;
+
+            sprite[x * y].ch = '$';
+        }
+    }
+
+    tr_sprite_draw(sprite, W, H);
     return 0;
 }
