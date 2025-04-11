@@ -14,7 +14,7 @@ static inline void tr_clear(void) {
 }
 
 // Cursor
-static inline void tr_move(int x, int y) {
+static inline void tr_cursor_move(int x, int y) {
     printf("\x1b[%d;%dH", y, x);
 }
 static inline void tr_cursor_visible(bool visible) {
@@ -94,10 +94,10 @@ typedef struct TrPixel {
     TrColor bg_color;
     bool bg_bright;
 } TrPixel;
-static inline void tr_pixel_draw(TrPixel c) {
-    tr_effect(c.effect);
-    tr_fg_color(c.fg_color, c.fg_bright);
-    tr_bg_color(c.bg_color, c.bg_bright);
+static inline void tr_pixel_draw(TrPixel pixel) {
+    tr_effect(pixel.effect);
+    tr_fg_color(pixel.fg_color, pixel.fg_bright);
+    tr_bg_color(pixel.bg_color, pixel.bg_bright);
     printf("%c", c.ch);
 }
 static inline void tr_sprite_draw(TrPixel *sprite, int x, int y, int width, int height) {
@@ -110,7 +110,7 @@ static inline void tr_sprite_draw(TrPixel *sprite, int x, int y, int width, int 
     bool curr_bg_bright = false;
 
     for (int iy = 0; iy < height; iy += 1) {
-        tr_move(x, y + iy);
+        tr_cursor_move(x, y + iy);
 
         tr_effect(curr_effect);
         tr_fg_color(curr_fg_color, curr_fg_bright);
