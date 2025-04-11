@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#define FOREACH_PIXEL(pixel, sprite, length)                                         \
+    for (int keep = 1, count = 0; keep && count != length; keep = !keep, count += 1) \
+        for (pixel = (sprite) + count; keep; keep = !keep)
+
 // Screen & Window
 static inline void tr_clear(void) {
     printf("\x1b[2J");
@@ -80,20 +84,23 @@ static inline void tr_bg_color(TrColor c, bool bright) {
 }
 
 // Abstraction
-typedef struct TrChar {
+typedef struct TrPixel {
     char ch;
     TrEffect effect;
+
     TrColor fg_color;
     bool fg_bright;
+
     TrColor bg_color;
     bool bg_bright;
-} TrChar;
-static inline void tr_char_draw(TrChar c) {
+} TrPixel;
+static inline void tr_pixel_draw(TrPixel c) {
     tr_effect(c.effect);
     tr_fg_color(c.fg_color, c.fg_bright);
     tr_bg_color(c.bg_color, c.bg_bright);
+    printf("%c", c.ch);
 }
-static inline void tr_sprite_draw(TrChar *sprite, int width, int height) {
+static inline void tr_sprite_draw(TrPixel *sprite, int x, int y, int width, int height) {
     TrEffect curr_effect = TR_EFFECT_NONE;
 
     TrColor curr_fg_color = TR_WHITE;
@@ -102,32 +109,40 @@ static inline void tr_sprite_draw(TrChar *sprite, int width, int height) {
     TrColor curr_bg_color = TR_BLACK;
     bool curr_bg_bright = false;
 
-    for (int y = 0; y < height; y += 1) {
-        for (int x = 0; x < width; x += 1) {
-            if (curr_effect != sprite[x * y].effect) {
-                curr_effect = sprite[x * y].effect;
+    for (int iy = 0; iy < height; iy += 1) {
+        tr_move(x, y + iy);
+
+        tr_effect(curr_effect);
+        tr_fg_color(curr_fg_color, curr_fg_bright);
+        tr_bg_color(curr_bg_color, curr_bg_bright);
+
+        for (int ix = 0; ix < width; ix += 1) {
+            int i = ix + iy * width;
+
+            if (curr_effect != sprite[i].effect) {
+                curr_effect = sprite[i].effect;
 
                 tr_effect(curr_effect);
             }
 
-            if (curr_fg_color != sprite[x * y].fg_color || curr_fg_bright != sprite[x * y].fg_bright) {
-                curr_fg_color = sprite[x * y].fg_color;
-                curr_fg_bright = sprite[x * y].fg_bright;
+            if (curr_fg_color != sprite[i].fg_color || curr_fg_bright != sprite[i].fg_bright) {
+                curr_fg_color = sprite[i].fg_color;
+                curr_fg_bright = sprite[i].fg_bright;
 
                 tr_fg_color(curr_fg_color, curr_fg_bright);
             }
 
-            if (curr_bg_color != sprite[x * y].bg_color || curr_bg_bright != sprite[x * y].bg_bright) {
-                curr_bg_color = sprite[x * y].bg_color;
-                curr_bg_bright = sprite[x * y].bg_bright;
+            if (curr_bg_color != sprite[i].bg_color || curr_bg_bright != sprite[i].bg_bright) {
+                curr_bg_color = sprite[i].bg_color;
+                curr_bg_bright = sprite[i].bg_bright;
 
                 tr_bg_color(curr_bg_color, curr_bg_bright);
             }
 
-            printf("%c", sprite[x * y].ch);
+            printf("%c", sprite[i].ch);
         }
+
         tr_reset();
-        printf("\n");
     }
 }
 #endif
