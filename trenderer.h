@@ -4,10 +4,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define FOREACH_PIXEL(pixel, sprite, length)                                         \
-    for (int keep = 1, count = 0; keep && count != length; keep = !keep, count += 1) \
-        for (pixel = (sprite) + count; keep; keep = !keep)
-
 // Screen & Window
 static inline void tr_clear(void) {
     printf("\x1b[2J");
@@ -98,7 +94,8 @@ static inline void tr_pixel_draw(TrPixel pixel) {
     tr_effect(pixel.effect);
     tr_fg_color(pixel.fg_color, pixel.fg_bright);
     tr_bg_color(pixel.bg_color, pixel.bg_bright);
-    printf("%c", c.ch);
+    printf("%c", pixel.ch);
+	tr_reset();
 }
 static inline void tr_sprite_draw(TrPixel *sprite, int x, int y, int width, int height) {
     TrEffect curr_effect = TR_EFFECT_NONE;
