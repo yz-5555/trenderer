@@ -3,7 +3,7 @@ It's tee-renderer. Or might be trendy enough to call it trenderer.
 
 ## Why TRENDERER?
   1. Beginner friendly.
-  2. Not OS-specific.
+  2. Cross-platform.
   3. Header-only.
   4. I am too lazy to test. (Might include bugs, but currently not found.)
 

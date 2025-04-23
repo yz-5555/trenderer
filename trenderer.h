@@ -6,12 +6,12 @@
 
 // Screen & Window
 static inline void tr_clear(void) {
-    printf("\x1b[2J");
+    printf("\x1b[2J\x1b[H");
 }
 
 // Cursor
 static inline void tr_cursor_move(int x, int y) {
-    printf("\x1b[%d;%dH", y, x);
+    printf("\x1b[%d;%dH", y + 1, x + 1);
 }
 static inline void tr_cursor_visible(bool visible) {
     if (visible)
@@ -71,11 +71,16 @@ typedef enum TrColor {
     TR_MAGENTA = 5,
     TR_CYAN = 6,
     TR_WHITE = 7,
+	TR_DEFAULT = 9
 } TrColor;
 static inline void tr_fg_color(TrColor c, bool bright) {
+	if (c == TR_DEFAULT)
+		bright = false;
     printf("\x1b[%dm", bright ? (90 + (int)c) : (30 + (int)c));
 }
 static inline void tr_bg_color(TrColor c, bool bright) {
+	if (c == TR_DEFAULT)
+		bright = false;
     printf("\x1b[%dm", bright ? (100 + (int)c) : (40 + (int)c));
 }
 
@@ -90,14 +95,14 @@ typedef struct TrPixel {
     TrColor bg_color;
     bool bg_bright;
 } TrPixel;
-static inline void tr_pixel_draw(TrPixel pixel) {
+static inline void tr_draw_pixel(TrPixel pixel) {
     tr_effect(pixel.effect);
     tr_fg_color(pixel.fg_color, pixel.fg_bright);
     tr_bg_color(pixel.bg_color, pixel.bg_bright);
     printf("%c", pixel.ch);
 	tr_reset();
 }
-static inline void tr_sprite_draw(TrPixel *sprite, int x, int y, int width, int height) {
+static inline void tr_draw_sprite(TrPixel *sprite, int x, int y, int width, int height) {
     TrEffect curr_effect = TR_EFFECT_NONE;
 
     TrColor curr_fg_color = TR_WHITE;
