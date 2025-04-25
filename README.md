@@ -2,10 +2,10 @@
 It's tee-renderer. Or might be trendy enough to call it trenderer.
 
 ## Why TRENDERER?
-  1. Beginner friendly.
-  2. Cross-platform.
-  3. Header-only.
-  4. I am too lazy to test. (Might include bugs, but currently not found.)
+  - Beginner friendly.
+  - Cross-platform.
+  - Header-only.
+  - I am too lazy to test. (Might include bugs, but currently not found.)
 
 ## Key features
 #### 1. Adding styles to console.
@@ -17,8 +17,8 @@ void tr_reset(void);
 ```
 #### 2. Rendering text based sprites & pixels.
 ```
-void tr_pixel_draw(TrPixel pixel);
-void tr_sprite_draw(TrPixel *sprite, int x, int y, int width, int height);
+void tr_draw_pixel(TrPixel pixel);
+void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height);
 ```
 #### 3. More controls
 ```

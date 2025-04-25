@@ -1,57 +1,114 @@
 #include "../trenderer.h"
+#include <conio.h>
+#include <Windows.h>
+
+#define KEY_SPACE 32
+#define KEY_ESC 27
+
+#define GRAVITY_FORCE 2
+#define JUMP_FORCE 3
+
+#define BASE_Y 10
 
 #define DINO_WIDTH 1
 #define DINO_HEIGHT 2
 
 typedef struct Vec2 {
-	int x;
-	int y;
+    int x;
+    int y;
 } Vec2;
-typedef struct Object {
-	Vec2 pos;
-	Vec2 vel;
-	Vec2 size;
-} Object;
+typedef struct Obstacle {
+    Vec2 pos;
+    int vel;
+    Vec2 size;
+} Obstacle;
+typedef struct Dino {
+    Vec2 pos;
+    Vec2 size;
+    int vel;
+    bool is_jumping;
+    bool is_alive;
+} Dino;
 
-void object_draw(TrPixel *sprite, const Object *object);
-
-void dino_init(Object *dino);
+void dino_init(Dino *dino);
 void dino_sprite_init(TrPixel *dino_sprite);
+void dino_update(Dino *dino);
+void dino_draw(const Dino *dino, const TrPixel *dino_sprite);
 
 int main(void) {
-	Object dino;
-	dino_init(&dino);
+	tr_cursor_visible(false);
 
-	TrPixel dino_sprite[DINO_WIDTH * DINO_HEIGHT];
-	dino_sprite_init(dino_sprite);
+    Dino dino;
+    dino_init(&dino);
 
-	tr_clear();
-	tr_draw_sprite(dino_sprite, 0, 0, DINO_WIDTH, DINO_HEIGHT);
-	return 0;
+    TrPixel dino_sprite[DINO_WIDTH * DINO_HEIGHT];
+    dino_sprite_init(dino_sprite);
+
+    while (dino.is_alive) {
+        tr_clear();
+        dino_update(&dino);
+        dino_draw(&dino, dino_sprite);
+        // printf("%d, %d, %d", dino.pos.y, dino.vel, dino.is_jumping);
+		Sleep(33);
+    }
+
+    return 0;
 }
 
-void dino_init(Object *dino) {
-	dino->pos.x = 1;
-	dino->pos.y = 10;
+void dino_init(Dino *dino) {
+    dino->pos.x = 1;
+    dino->pos.y = BASE_Y;
 
-	dino->vel.x = 0;
-	dino->vel.y = 0;
+    dino->vel = 0;
 
-	dino->size.x = DINO_WIDTH;
-	dino->size.y = DINO_HEIGHT;
+    dino->size.x = DINO_WIDTH;
+    dino->size.y = DINO_HEIGHT;
+
+    dino->is_jumping = false;
+    dino->is_alive = true;
 }
 void dino_sprite_init(TrPixel *dino_sprite) {
-	dino_sprite[0].ch = 'F';
-	dino_sprite[0].effect = TR_BOLD;
-	dino_sprite[0].fg_color = TR_GREEN;
-	dino_sprite[0].fg_bright = true;
-	dino_sprite[0].bg_color = TR_DEFAULT;
-	dino_sprite[0].bg_bright = true;
+    dino_sprite[0].ch = 'P';
+    dino_sprite[0].effect = TR_BOLD;
+    dino_sprite[0].fg_color = TR_GREEN;
+    dino_sprite[0].fg_bright = true;
+    dino_sprite[0].bg_color = TR_DEFAULT;
+    dino_sprite[0].bg_bright = true;
 
-	dino_sprite[1].ch = 'N';
-	dino_sprite[1].effect = TR_BOLD | TR_BLINK;
-	dino_sprite[1].fg_color = TR_GREEN;
-	dino_sprite[1].fg_bright = true;
-	dino_sprite[1].bg_color = TR_DEFAULT;
-	dino_sprite[1].bg_bright = false;
+    dino_sprite[1].ch = 'n';
+    dino_sprite[1].effect = TR_BOLD;
+    dino_sprite[1].fg_color = TR_GREEN;
+    dino_sprite[1].fg_bright = true;
+    dino_sprite[1].bg_color = TR_DEFAULT;
+    dino_sprite[1].bg_bright = true;
+}
+void dino_update(Dino *dino) {
+    if (!dino->is_alive)
+        return;
+
+    if (_kbhit()) {
+        switch (_getch()) {
+        case KEY_SPACE:
+			if (dino->is_jumping)
+				break;
+            dino->is_jumping = true;
+            dino->vel = -JUMP_FORCE;
+            break;
+        case KEY_ESC:
+            dino->is_alive = false;
+            break;
+        }
+    }
+    if (dino->is_jumping) {
+        dino->pos.y += dino->vel;
+        dino->vel += GRAVITY_FORCE;
+    }
+    if (dino->pos.y >= BASE_Y) {
+        dino->is_jumping = false;
+        dino->vel = 0;
+		dino->pos.y = BASE_Y;
+    }
+}
+void dino_draw(const Dino *dino, const TrPixel *dino_sprite) {
+    tr_draw_sprite(dino_sprite, dino->pos.x, dino->pos.y, dino->size.x, dino->size.y);
 }

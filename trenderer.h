@@ -102,7 +102,7 @@ static inline void tr_draw_pixel(TrPixel pixel) {
     printf("%c", pixel.ch);
 	tr_reset();
 }
-static inline void tr_draw_sprite(TrPixel *sprite, int x, int y, int width, int height) {
+static inline void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) {
     TrEffect curr_effect = TR_EFFECT_NONE;
 
     TrColor curr_fg_color = TR_WHITE;
