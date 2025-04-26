@@ -1,6 +1,6 @@
 #include "../trenderer.h"
-#include <conio.h>
 #include <Windows.h>
+#include <conio.h>
 
 #define KEY_SPACE 32
 #define KEY_ESC 27
@@ -8,7 +8,8 @@
 #define GRAVITY_FORCE 2
 #define JUMP_FORCE 3
 
-#define BASE_Y 10
+#define BG_WIDTH 20
+#define BG_HEIGHT 10
 
 #define DINO_WIDTH 1
 #define DINO_HEIGHT 2
@@ -35,8 +36,11 @@ void dino_sprite_init(TrPixel *dino_sprite);
 void dino_update(Dino *dino);
 void dino_draw(const Dino *dino, const TrPixel *dino_sprite);
 
+void background_init(TrPixel *bg);
+void background_draw(const TrPixel *bg);
+
 int main(void) {
-	tr_cursor_visible(false);
+    tr_cursor_visible(false);
 
     Dino dino;
     dino_init(&dino);
@@ -44,12 +48,15 @@ int main(void) {
     TrPixel dino_sprite[DINO_WIDTH * DINO_HEIGHT];
     dino_sprite_init(dino_sprite);
 
+    TrPixel bg[BG_WIDTH * BG_HEIGHT];
+    background_init(bg);
+
     while (dino.is_alive) {
         tr_clear();
         dino_update(&dino);
+        background_draw(bg);
         dino_draw(&dino, dino_sprite);
-        // printf("%d, %d, %d", dino.pos.y, dino.vel, dino.is_jumping);
-		Sleep(33);
+        Sleep(33);
     }
 
     return 0;
@@ -57,7 +64,7 @@ int main(void) {
 
 void dino_init(Dino *dino) {
     dino->pos.x = 1;
-    dino->pos.y = BASE_Y;
+    dino->pos.y = BG_HEIGHT;
 
     dino->vel = 0;
 
@@ -89,8 +96,8 @@ void dino_update(Dino *dino) {
     if (_kbhit()) {
         switch (_getch()) {
         case KEY_SPACE:
-			if (dino->is_jumping)
-				break;
+            if (dino->is_jumping)
+                break;
             dino->is_jumping = true;
             dino->vel = -JUMP_FORCE;
             break;
@@ -103,12 +110,22 @@ void dino_update(Dino *dino) {
         dino->pos.y += dino->vel;
         dino->vel += GRAVITY_FORCE;
     }
-    if (dino->pos.y >= BASE_Y) {
+    if (dino->pos.y >= BG_HEIGHT) {
         dino->is_jumping = false;
         dino->vel = 0;
-		dino->pos.y = BASE_Y;
+        dino->pos.y = BG_HEIGHT;
     }
 }
 void dino_draw(const Dino *dino, const TrPixel *dino_sprite) {
     tr_draw_sprite(dino_sprite, dino->pos.x, dino->pos.y, dino->size.x, dino->size.y);
+}
+void background_init(TrPixel *bg) {
+    for (int y = 0; y < BG_HEIGHT; y += 1) {
+        for (int x = 0; x < BG_WIDTH; x += 1) {
+            int i = y * BG_WIDTH + x;
+        }
+    }
+}
+void background_draw(const TrPixel *bg) {
+    tr_draw_sprite(bg, 0, 0, BG_WIDTH, BG_HEIGHT);
 }
