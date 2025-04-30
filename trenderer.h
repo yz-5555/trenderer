@@ -10,10 +10,10 @@ static inline void tr_clear(void) {
 }
 
 // Cursor
-static inline void tr_cursor_move(int x, int y) {
+static inline void tr_move_cursor(int x, int y) {
     printf("\x1b[%d;%dH", y + 1, x + 1);
 }
-static inline void tr_cursor_visible(bool visible) {
+static inline void tr_show_cursor(bool visible) {
     if (visible)
         printf("\x1b[?25h");
     else
@@ -71,16 +71,16 @@ typedef enum TrColor {
     TR_MAGENTA = 5,
     TR_CYAN = 6,
     TR_WHITE = 7,
-	TR_DEFAULT = 9
+    TR_DEFAULT = 9
 } TrColor;
 static inline void tr_fg_color(TrColor c, bool bright) {
-	if (c == TR_DEFAULT)
-		bright = false;
+    if (c == TR_DEFAULT)
+        bright = false;
     printf("\x1b[%dm", bright ? (90 + (int)c) : (30 + (int)c));
 }
 static inline void tr_bg_color(TrColor c, bool bright) {
-	if (c == TR_DEFAULT)
-		bright = false;
+    if (c == TR_DEFAULT)
+        bright = false;
     printf("\x1b[%dm", bright ? (100 + (int)c) : (40 + (int)c));
 }
 
@@ -100,7 +100,7 @@ static inline void tr_draw_pixel(TrPixel pixel) {
     tr_fg_color(pixel.fg_color, pixel.fg_bright);
     tr_bg_color(pixel.bg_color, pixel.bg_bright);
     printf("%c", pixel.ch);
-	tr_reset();
+    tr_reset();
 }
 static inline void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) {
     TrEffect curr_effect = TR_EFFECT_NONE;
@@ -112,7 +112,7 @@ static inline void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width
     bool curr_bg_bright = false;
 
     for (int iy = 0; iy < height; iy += 1) {
-        tr_cursor_move(x, y + iy);
+        tr_move_cursor(x, y + iy);
 
         tr_effect(curr_effect);
         tr_fg_color(curr_fg_color, curr_fg_bright);
@@ -120,27 +120,31 @@ static inline void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width
 
         for (int ix = 0; ix < width; ix += 1) {
             int i = ix + iy * width;
+            bool changed = false;
 
             if (curr_effect != sprite[i].effect) {
                 curr_effect = sprite[i].effect;
-
-                tr_effect(curr_effect);
+                changed = true;
             }
 
             if (curr_fg_color != sprite[i].fg_color || curr_fg_bright != sprite[i].fg_bright) {
                 curr_fg_color = sprite[i].fg_color;
                 curr_fg_bright = sprite[i].fg_bright;
-
-                tr_fg_color(curr_fg_color, curr_fg_bright);
+                changed = true;
             }
 
             if (curr_bg_color != sprite[i].bg_color || curr_bg_bright != sprite[i].bg_bright) {
                 curr_bg_color = sprite[i].bg_color;
                 curr_bg_bright = sprite[i].bg_bright;
-
-                tr_bg_color(curr_bg_color, curr_bg_bright);
+                changed = true;
             }
 
+            if (changed) {
+                tr_reset();
+                tr_effect(curr_effect);
+                tr_fg_color(curr_fg_color, curr_fg_bright);
+                tr_bg_color(curr_bg_color, curr_bg_bright);
+            }
             printf("%c", sprite[i].ch);
         }
 
