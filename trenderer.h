@@ -6,7 +6,7 @@
 
 // Screen & Window
 static inline void tr_clear(void) {
-    puts("\x1b[2J\x1b[H");
+    fputs("\x1b[2J\x1b[H", stdout);
 }
 
 // Cursor
@@ -15,9 +15,9 @@ static inline void tr_move_cursor(int x, int y) {
 }
 static inline void tr_show_cursor(bool visible) {
     if (visible)
-        puts("\x1b[?25h");
+        fputs("\x1b[?25h", stdout);
     else
-        puts("\x1b[?25l");
+        fputs("\x1b[?25l", stdout);
 }
 
 // Effects
@@ -34,56 +34,56 @@ typedef enum TrEffect {
 } TrEffect;
 static inline void tr_effects(TrEffect e) {
     if (e & TR_BOLD)
-        puts("\x1b[1m");
+        fputs("\x1b[1m", stdout);
 
     if (e & TR_DIM)
-        puts("\x1b[2m");
+        fputs("\x1b[2m", stdout);
 
     if (e & TR_ITALIC)
-        puts("\x1b[3m");
+        fputs("\x1b[3m", stdout);
 
     if (e & TR_UNDERLINE)
-        puts("\x1b[4m");
+        fputs("\x1b[4m", stdout);
 
     if (e & TR_BLINK)
-        puts("\x1b[5m");
+        fputs("\x1b[5m", stdout);
 
     if (e & TR_INVERT)
-        puts("\x1b[7m");
+        fputs("\x1b[7m", stdout);
 
     if (e & TR_HIDDEN)
-        puts("\x1b[8m");
+        fputs("\x1b[8m", stdout);
 
     if (e & TR_STRIKETHROUGH)
-        puts("\x1b[9m");
+        fputs("\x1b[9m", stdout);
 }
 static inline void tr_remove_effects(TrEffect effect) {
     if (effect & TR_BOLD || effect & TR_DIM)
-        puts("\x1b[22m");
+        fputs("\x1b[22m", stdout);
 
     if (effect & TR_ITALIC)
-        puts("\x1b[23m");
+        fputs("\x1b[23m", stdout);
 
     if (effect & TR_UNDERLINE)
-        puts("\x1b[24m");
+        fputs("\x1b[24m", stdout);
 
     if (effect & TR_BLINK)
-        puts("\x1b[25m");
+        fputs("\x1b[25m", stdout);
 
     if (effect & TR_INVERT)
-        puts("\x1b[27m");
+        fputs("\x1b[27m", stdout);
 
     if (effect & TR_HIDDEN)
-        puts("\x1b[28m");
+        fputs("\x1b[28m", stdout);
 
     if (effect & TR_STRIKETHROUGH)
-        puts("\x1b[29m");
+        fputs("\x1b[29m", stdout);
 }
 static inline void tr_reset_effects(void) {
-    puts("\x1b[22;23;24;25;27;28;29m");
+    fputs("\x1b[22;23;24;25;27;28;29m", stdout);
 }
 static inline void tr_reset(void) {
-    puts("\x1b[0m");
+    fputs("\x1b[0m", stdout);
 }
 
 // Colors
@@ -130,22 +130,20 @@ typedef struct TrState {
     bool bg_changed;
 } TrState;
 static inline void tr_state_init(TrState *state) {
-    state->style = {
-        .effects = TR_EFFECT_DEFAULT,
-        .fg_color = TR_COLOR_DEFAULT,
-        .fg_bright = false,
-        .bg_color = TR_COLOR_DEFAULT,
-        .bg_bright = false,
-    };
+    state->style.effects = TR_EFFECT_DEFAULT;
+    state->style.fg_color = TR_COLOR_DEFAULT;
+    state->style.fg_bright = false;
+    state->style.bg_color = TR_COLOR_DEFAULT;
+    state->style.bg_bright = false;
     state->effects_to_add = TR_EFFECT_DEFAULT;
     state->effects_to_remove = TR_EFFECT_DEFAULT;
     state->fg_changed = false;
     state->bg_changed = false;
 }
-static inline void tr_state_add_effect(TrState *state, TrEffect effect) {
+static inline void tr_state_add_effects(TrState *state, TrEffect effect) {
     state->effects_to_add = (TrEffect)(state->effects_to_add | effect);
 }
-static inline void tr_state_remove_effect(TrState *state, TrEffect effect) {
+static inline void tr_state_remove_effects(TrState *state, TrEffect effect) {
     state->effects_to_remove = (TrEffect)(state->effects_to_remove | effect);
 }
 static inline void tr_state_fg_color(TrState *state, TrColor color, bool bright) {
@@ -204,28 +202,28 @@ static inline void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width
         for (int ix = 0; ix < width; ix += 1) {
             int i = ix + iy * width;
 
-            if (state.style.effects != sprite[i].style.effects) {
-                curr.effect = sprite[i].style.effect;
-            }
-
-            if (curr_fg_color != sprite[i].style.fg_color || curr_fg_bright != sprite[i].style.fg_bright) {
-                curr_fg_color = sprite[i].style.fg_color;
-                curr_fg_bright = sprite[i].style.fg_bright;
-                changed = true;
-            }
-
-            if (curr_bg_color != sprite[i].style.bg_color || curr_bg_bright != sprite[i].style.bg_bright) {
-                curr_bg_color = sprite[i].style.bg_color;
-                curr_bg_bright = sprite[i].style.bg_bright;
-                changed = true;
-            }
-
-            if (changed) {
-                tr_reset();
-                tr_effects(curr_effect);
-                tr_fg_color(curr_fg_color, curr_fg_bright);
-                tr_bg_color(curr_bg_color, curr_bg_bright);
-            }
+            // if (state.style.effects != sprite[i].style.effects) {
+            //     curr.effect = sprite[i].style.effect;
+            // }
+            //
+            // if (curr_fg_color != sprite[i].style.fg_color || curr_fg_bright != sprite[i].style.fg_bright) {
+            //     curr_fg_color = sprite[i].style.fg_color;
+            //     curr_fg_bright = sprite[i].style.fg_bright;
+            //     changed = true;
+            // }
+            //
+            // if (curr_bg_color != sprite[i].style.bg_color || curr_bg_bright != sprite[i].style.bg_bright) {
+            //     curr_bg_color = sprite[i].style.bg_color;
+            //     curr_bg_bright = sprite[i].style.bg_bright;
+            //     changed = true;
+            // }
+            //
+            // if (changed) {
+            //     tr_reset();
+            //     tr_effects(curr_effect);
+            //     tr_fg_color(curr_fg_color, curr_fg_bright);
+            //     tr_bg_color(curr_bg_color, curr_bg_bright);
+            // }
             putchar(sprite[i].ch);
         }
         tr_reset();
