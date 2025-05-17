@@ -5,8 +5,6 @@ It's tee-renderer. Or might be trendy enough to call it trenderer.
   - Beginner friendly.
   - Cross-platform.
   - Header-only.
-  - I am too lazy to test. (Might include bugs, but currently not found.)
-
 ## Key features
 #### 1. Adding styles to console.
 ```c
@@ -23,8 +21,8 @@ void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height);
 #### 3. More controls
 ```c
 void tr_clear(void);
-void tr_cursor_move(int x, int y);
-void tr_cursor_visible(bool visible);
+void tr_move_cursor(int x, int y);
+void tr_show_cursor(bool visible);
 ```
 ## Installation
 Just add `trenderer.h` to your project and it's good to go.

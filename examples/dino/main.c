@@ -1,6 +1,5 @@
 #include "dino.h"
 #include <Windows.h>
-#include <rpcndr.h>
 
 int main(void) {
     TrPixel bg[BG_WIDTH * BG_HEIGHT];

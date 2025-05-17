@@ -14,6 +14,7 @@ typedef struct Vec2 {
 #define BG_HEIGHT 10
 
 #define BG_COLOR TR_YELLOW
+
 void init_background(TrPixel *bg);
 void draw_background(const TrPixel *bg);
 
@@ -54,16 +55,19 @@ void draw_dino(const Dino *dino, const TrPixel *dino_sprite);
 #define BIRD_HEIGHT 1
 
 typedef enum ObstacleType {
-    OT_SMALL_CACTUS,
-    OT_BIG_CACTUS,
-    OT_BIRD
+    OT_SMALL_CACTUS = 0,
+    OT_BIG_CACTUS = 1,
+    OT_BIRD = 2
 } ObstacleType;
 typedef struct Obstacle {
+    ObstacleType type;
     Vec2 pos;
     Vec2 size;
     int vel_x;
-    ObstacleType type;
+    bool is_alive;
 } Obstacle;
+
+void init_obstacle(Obstacle *obstacle, ObstacleType type);
 
 void init_obstacles(Obstacle *obstacles);
 void update_obstacles(Obstacle *obstacles);
