@@ -1,4 +1,8 @@
 #include "dino.h"
+
+#define TRENDERER_IMPLEMENTATION
+#include "../../trenderer.h"
+
 #include <conio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -6,8 +10,8 @@
 void init_background(TrPixel *bg) {
     for (int i = 0; i < BG_WIDTH * BG_HEIGHT; i += 1) {
         bg[i].ch = ' ';
-        bg[i].style.effect = TR_EFFECT_NONE;
-        bg[i].style.fg_color = TR_DEFAULT;
+        bg[i].style.effects = TR_EFFECT_DEFAULT;
+        bg[i].style.fg_color = TR_COLOR_DEFAULT;
         bg[i].style.fg_bright = false;
         bg[i].style.bg_color = BG_COLOR;
         bg[i].style.bg_bright = false;
@@ -29,14 +33,14 @@ void init_dino(Dino *dino, TrPixel *dino_sprite) {
     dino->is_alive = true;
 
     dino_sprite[0].ch = 'P';
-    dino_sprite[0].style.effect = TR_BOLD | TR_UNDERLINE;
+    dino_sprite[0].style.effects = TR_BOLD | TR_UNDERLINE;
     dino_sprite[0].style.fg_color = TR_GREEN;
     dino_sprite[0].style.fg_bright = false;
     dino_sprite[0].style.bg_color = BG_COLOR;
     dino_sprite[0].style.bg_bright = false;
 
     dino_sprite[1].ch = 'n';
-    dino_sprite[1].style.effect = TR_BOLD;
+    dino_sprite[1].style.effects = TR_BOLD;
     dino_sprite[1].style.fg_color = TR_GREEN;
     dino_sprite[1].style.fg_bright = false;
     dino_sprite[1].style.bg_color = BG_COLOR;
@@ -128,7 +132,7 @@ void draw_obstacles(const Obstacle *obstacles) {
 }
 void init_small_cactus_sprite(TrPixel *small_cactus_sprite) {
     small_cactus_sprite->ch = 'A';
-    small_cactus_sprite->style.effect = TR_BOLD | TR_UNDERLINE;
+    small_cactus_sprite->style.effects = TR_BOLD | TR_UNDERLINE;
     small_cactus_sprite->style.fg_color = TR_GREEN;
     small_cactus_sprite->style.fg_bright = false;
     small_cactus_sprite->style.bg_color = BG_COLOR;

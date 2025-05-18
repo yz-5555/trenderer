@@ -2,23 +2,13 @@
 #define TRENDERER_H
 
 #include <stdbool.h>
-#include <stdio.h>
 
-// Screen & Window
-static inline void tr_clear(void) {
-    fputs("\x1b[2J\x1b[H", stdout);
-}
+// Screen & Window control
+void tr_clear(void);
 
-// Cursor
-static inline void tr_move_cursor(int x, int y) {
-    printf("\x1b[%d;%dH", y + 1, x + 1);
-}
-static inline void tr_show_cursor(bool visible) {
-    if (visible)
-        fputs("\x1b[?25h", stdout);
-    else
-        fputs("\x1b[?25l", stdout);
-}
+// Cursor control
+void tr_move_cursor(int x, int y);
+void tr_show_cursor(bool visible);
 
 // Effects
 typedef enum TrEffect {
@@ -32,59 +22,10 @@ typedef enum TrEffect {
     TR_HIDDEN = 1 << 6,
     TR_STRIKETHROUGH = 1 << 7,
 } TrEffect;
-static inline void tr_effects(TrEffect e) {
-    if (e & TR_BOLD)
-        fputs("\x1b[1m", stdout);
-
-    if (e & TR_DIM)
-        fputs("\x1b[2m", stdout);
-
-    if (e & TR_ITALIC)
-        fputs("\x1b[3m", stdout);
-
-    if (e & TR_UNDERLINE)
-        fputs("\x1b[4m", stdout);
-
-    if (e & TR_BLINK)
-        fputs("\x1b[5m", stdout);
-
-    if (e & TR_INVERT)
-        fputs("\x1b[7m", stdout);
-
-    if (e & TR_HIDDEN)
-        fputs("\x1b[8m", stdout);
-
-    if (e & TR_STRIKETHROUGH)
-        fputs("\x1b[9m", stdout);
-}
-static inline void tr_remove_effects(TrEffect effect) {
-    if (effect & TR_BOLD || effect & TR_DIM)
-        fputs("\x1b[22m", stdout);
-
-    if (effect & TR_ITALIC)
-        fputs("\x1b[23m", stdout);
-
-    if (effect & TR_UNDERLINE)
-        fputs("\x1b[24m", stdout);
-
-    if (effect & TR_BLINK)
-        fputs("\x1b[25m", stdout);
-
-    if (effect & TR_INVERT)
-        fputs("\x1b[27m", stdout);
-
-    if (effect & TR_HIDDEN)
-        fputs("\x1b[28m", stdout);
-
-    if (effect & TR_STRIKETHROUGH)
-        fputs("\x1b[29m", stdout);
-}
-static inline void tr_reset_effects(void) {
-    fputs("\x1b[22;23;24;25;27;28;29m", stdout);
-}
-static inline void tr_reset(void) {
-    fputs("\x1b[0m", stdout);
-}
+void tr_effects(TrEffect effects);
+void tr_remove_effects(TrEffect effects);
+void tr_reset_effects(void);
+void tr_reset(void);
 
 // Colors
 typedef enum TrColor {
@@ -98,16 +39,8 @@ typedef enum TrColor {
     TR_WHITE = 7,
     TR_COLOR_DEFAULT = 9
 } TrColor;
-static inline void tr_fg_color(TrColor c, bool bright) {
-    if (c == TR_COLOR_DEFAULT)
-        bright = false;
-    printf("\x1b[%dm", bright ? (90 + (int)c) : (30 + (int)c));
-}
-static inline void tr_bg_color(TrColor c, bool bright) {
-    if (c == TR_COLOR_DEFAULT)
-        bright = false;
-    printf("\x1b[%dm", bright ? (100 + (int)c) : (40 + (int)c));
-}
+void tr_fg_color(TrColor fg_color, bool bright);
+void tr_bg_color(TrColor bg_color, bool bright);
 
 typedef struct TrStyle {
     TrEffect effects;
@@ -129,7 +62,110 @@ typedef struct TrState {
     bool fg_changed;
     bool bg_changed;
 } TrState;
-static inline void tr_state_init(TrState *state) {
+void tr_state_init(TrState *state);
+void tr_state_add_effects(TrState *state, TrEffect effects);
+void tr_state_remove_effects(TrState *state, TrEffect effects);
+void tr_state_fg_color(TrState *state, TrColor fg_color, bool bright);
+void tr_state_bg_Color(TrState *state, TrColor bg_color, bool bright);
+void tr_state_apply(TrState *state);
+
+// Sprite renderer
+typedef struct TrPixel {
+    char ch;
+    TrStyle style;
+} TrPixel;
+void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height);
+#endif
+
+#ifdef TRENDERER_IMPLEMENTATION
+
+#include <stdio.h>
+
+// Screen & Window control
+void tr_clear(void) {
+    fputs("\x1b[2J\x1b[H", stdout);
+}
+
+// Cursor control
+void tr_move_cursor(int x, int y) {
+    printf("\x1b[%d;%dH", y + 1, x + 1);
+}
+void tr_show_cursor(bool visible) {
+    if (visible)
+        fputs("\x1b[?25h", stdout);
+    else
+        fputs("\x1b[?25l", stdout);
+}
+
+// Effects
+void tr_effects(TrEffect effects) {
+    if (effects & TR_BOLD)
+        fputs("\x1b[1m", stdout);
+
+    if (effects & TR_DIM)
+        fputs("\x1b[2m", stdout);
+
+    if (effects & TR_ITALIC)
+        fputs("\x1b[3m", stdout);
+
+    if (effects & TR_UNDERLINE)
+        fputs("\x1b[4m", stdout);
+
+    if (effects & TR_BLINK)
+        fputs("\x1b[5m", stdout);
+
+    if (effects & TR_INVERT)
+        fputs("\x1b[7m", stdout);
+
+    if (effects & TR_HIDDEN)
+        fputs("\x1b[8m", stdout);
+
+    if (effects & TR_STRIKETHROUGH)
+        fputs("\x1b[9m", stdout);
+}
+void tr_remove_effects(TrEffect effects) {
+    if (effects & TR_BOLD || effects & TR_DIM)
+        fputs("\x1b[22m", stdout);
+
+    if (effects & TR_ITALIC)
+        fputs("\x1b[23m", stdout);
+
+    if (effects & TR_UNDERLINE)
+        fputs("\x1b[24m", stdout);
+
+    if (effects & TR_BLINK)
+        fputs("\x1b[25m", stdout);
+
+    if (effects & TR_INVERT)
+        fputs("\x1b[27m", stdout);
+
+    if (effects & TR_HIDDEN)
+        fputs("\x1b[28m", stdout);
+
+    if (effects & TR_STRIKETHROUGH)
+        fputs("\x1b[29m", stdout);
+}
+void tr_reset_effects(void) {
+    fputs("\x1b[22;23;24;25;27;28;29m", stdout);
+}
+void tr_reset(void) {
+    fputs("\x1b[0m", stdout);
+}
+
+// Colors
+void tr_fg_color(TrColor fg_color, bool bright) {
+    if (fg_color == TR_COLOR_DEFAULT)
+        bright = false;
+    printf("\x1b[%dm", bright ? (90 + (int)fg_color) : (30 + (int)fg_color));
+}
+void tr_bg_color(TrColor bg_color, bool bright) {
+    if (bg_color == TR_COLOR_DEFAULT)
+        bright = false;
+    printf("\x1b[%dm", bright ? (100 + (int)bg_color) : (40 + (int)bg_color));
+}
+
+// State renderer
+void tr_state_init(TrState *state) {
     state->style.effects = TR_EFFECT_DEFAULT;
     state->style.fg_color = TR_COLOR_DEFAULT;
     state->style.fg_bright = false;
@@ -140,15 +176,15 @@ static inline void tr_state_init(TrState *state) {
     state->fg_changed = false;
     state->bg_changed = false;
 }
-static inline void tr_state_add_effects(TrState *state, TrEffect effect) {
-    state->effects_to_add = (TrEffect)(state->effects_to_add | effect);
+void tr_state_add_effects(TrState *state, TrEffect effects) {
+    state->effects_to_add = (TrEffect)(state->effects_to_add | effects);
 }
-static inline void tr_state_remove_effects(TrState *state, TrEffect effect) {
-    state->effects_to_remove = (TrEffect)(state->effects_to_remove | effect);
+void tr_state_remove_effects(TrState *state, TrEffect effects) {
+    state->effects_to_remove = (TrEffect)(state->effects_to_remove | effects);
 }
-static inline void tr_state_fg_color(TrState *state, TrColor color, bool bright) {
-    if (state->style.fg_color != color) {
-        state->style.fg_color = color;
+void tr_state_fg_color(TrState *state, TrColor fg_color, bool bright) {
+    if (state->style.fg_color != fg_color) {
+        state->style.fg_color = fg_color;
         state->fg_changed = true;
     }
     if (state->style.fg_bright != bright) {
@@ -156,9 +192,9 @@ static inline void tr_state_fg_color(TrState *state, TrColor color, bool bright)
         state->fg_changed = true;
     }
 }
-static inline void tr_state_bg_color(TrState *state, TrColor color, bool bright) {
-    if (state->style.bg_color != color) {
-        state->style.bg_color = color;
+void tr_state_bg_color(TrState *state, TrColor bg_color, bool bright) {
+    if (state->style.bg_color != bg_color) {
+        state->style.bg_color = bg_color;
         state->bg_changed = true;
     }
     if (state->style.bg_bright != bright) {
@@ -166,7 +202,7 @@ static inline void tr_state_bg_color(TrState *state, TrColor color, bool bright)
         state->bg_changed = true;
     }
 }
-static inline void tr_state_apply(TrState *state) {
+void tr_state_apply(TrState *state) {
     if (state->effects_to_add != TR_EFFECT_DEFAULT) {
         state->style.effects = (TrEffect)(state->style.effects | state->effects_to_add);
         tr_effects(state->effects_to_add);
@@ -187,44 +223,39 @@ static inline void tr_state_apply(TrState *state) {
 }
 
 // Sprite renderer
-typedef struct TrPixel {
-    char ch;
-    TrStyle style;
-} TrPixel;
-static inline void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) {
+void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) {
     TrState state;
     tr_state_init(&state);
 
     for (int iy = 0; iy < height; iy += 1) {
         tr_move_cursor(x, y + iy);
-        tr_state_apply(&state);
+        // tr_state_apply(&state);
 
         for (int ix = 0; ix < width; ix += 1) {
             int i = ix + iy * width;
+            bool changed = false;
 
-            // if (state.style.effects != sprite[i].style.effects) {
-            //     curr.effect = sprite[i].style.effect;
-            // }
-            //
-            // if (curr_fg_color != sprite[i].style.fg_color || curr_fg_bright != sprite[i].style.fg_bright) {
-            //     curr_fg_color = sprite[i].style.fg_color;
-            //     curr_fg_bright = sprite[i].style.fg_bright;
-            //     changed = true;
-            // }
-            //
-            // if (curr_bg_color != sprite[i].style.bg_color || curr_bg_bright != sprite[i].style.bg_bright) {
-            //     curr_bg_color = sprite[i].style.bg_color;
-            //     curr_bg_bright = sprite[i].style.bg_bright;
-            //     changed = true;
-            // }
-            //
-            // if (changed) {
-            //     tr_reset();
-            //     tr_effects(curr_effect);
-            //     tr_fg_color(curr_fg_color, curr_fg_bright);
-            //     tr_bg_color(curr_bg_color, curr_bg_bright);
-            // }
-            putchar(sprite[i].ch);
+            if (state.style.effects != sprite[i].style.effects) {
+                tr_state_add_effects(&state, state.style.effects & ~sprite[i].style.effects);
+                tr_state_remove_effects(&state, sprite[i].style.effects & ~state.style.effects);
+                changed = true;
+            }
+
+            if (state.style.fg_color != sprite[i].style.fg_color || state.style.fg_bright != sprite[i].style.fg_bright) {
+                tr_state_fg_color(&state, sprite[i].style.fg_color, sprite[i].style.fg_bright);
+                changed = true;
+            }
+
+            if (state.style.bg_color != sprite[i].style.bg_color || state.style.bg_bright != sprite[i].style.bg_bright) {
+                tr_state_bg_color(&state, sprite[i].style.bg_color, sprite[i].style.bg_bright);
+                changed = true;
+            }
+
+            // if (changed)
+                // tr_state_apply(&state);
+
+            // putchar(sprite[i].ch);
+			printf("EFFECTS: %d, FG: %d, BG: %d\n", state.style.effects, state.style.fg_color, state.style.bg_color);
         }
         tr_reset();
     }
