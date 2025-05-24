@@ -1,4 +1,6 @@
-#include "../trenderer.h"
+#define TRENDERER_IMPLEMENTATION
+#include "../../trenderer.h"
+
 #include <stdio.h>
 
 int main(void) {

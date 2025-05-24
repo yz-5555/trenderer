@@ -1,3 +1,8 @@
-/build.bat
-/examples/hello-world.exe
+/build-hw.bat
+/build-dino.bat
+/build-t.bat
+
+/project.md
+
+/examples/hello-world/hello-world.exe
 /examples/dino/dino.exe

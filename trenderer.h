@@ -42,6 +42,7 @@ typedef enum TrColor {
 void tr_fg_color(TrColor fg_color, bool bright);
 void tr_bg_color(TrColor bg_color, bool bright);
 
+// Style
 typedef struct TrStyle {
     TrEffect effects;
 
@@ -51,6 +52,7 @@ typedef struct TrStyle {
     TrColor bg_color;
     bool bg_bright;
 } TrStyle;
+void tr_style(const TrStyle *style);
 
 // State renderer
 typedef struct TrState {
@@ -66,7 +68,7 @@ void tr_state_init(TrState *state);
 void tr_state_add_effects(TrState *state, TrEffect effects);
 void tr_state_remove_effects(TrState *state, TrEffect effects);
 void tr_state_fg_color(TrState *state, TrColor fg_color, bool bright);
-void tr_state_bg_Color(TrState *state, TrColor bg_color, bool bright);
+void tr_state_bg_color(TrState *state, TrColor bg_color, bool bright);
 void tr_state_apply(TrState *state);
 
 // Sprite renderer
@@ -75,6 +77,10 @@ typedef struct TrPixel {
     TrStyle style;
 } TrPixel;
 void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height);
+
+// Helper functions
+void tr_log_effects(TrEffect effects);
+void tr_log_color(TrColor color, bool bright);
 #endif
 
 #ifdef TRENDERER_IMPLEMENTATION
@@ -164,6 +170,13 @@ void tr_bg_color(TrColor bg_color, bool bright) {
     printf("\x1b[%dm", bright ? (100 + (int)bg_color) : (40 + (int)bg_color));
 }
 
+// Style
+void tr_style(const TrStyle *style) {
+    tr_effects(style->effects);
+    tr_fg_color(style->fg_color, style->fg_bright);
+    tr_bg_color(style->bg_color, style->bg_bright);
+}
+
 // State renderer
 void tr_state_init(TrState *state) {
     state->style.effects = TR_EFFECT_DEFAULT;
@@ -224,40 +237,97 @@ void tr_state_apply(TrState *state) {
 
 // Sprite renderer
 void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) {
-    TrState state;
-    tr_state_init(&state);
+    TrStyle style = {
+        .effects = TR_EFFECT_DEFAULT,
+        .fg_color = TR_COLOR_DEFAULT,
+        .fg_bright = false,
+        .bg_color = TR_COLOR_DEFAULT,
+        .bg_bright = false,
+    };
 
     for (int iy = 0; iy < height; iy += 1) {
         tr_move_cursor(x, y + iy);
-        // tr_state_apply(&state);
+
+        tr_style(&style);
 
         for (int ix = 0; ix < width; ix += 1) {
             int i = ix + iy * width;
-            bool changed = false;
 
-            if (state.style.effects != sprite[i].style.effects) {
-                tr_state_add_effects(&state, state.style.effects & ~sprite[i].style.effects);
-                tr_state_remove_effects(&state, sprite[i].style.effects & ~state.style.effects);
-                changed = true;
+            if (style.effects != sprite[i].style.effects) {
+                tr_effects(sprite[i].style.effects & ~style.effects);
+                tr_remove_effects(style.effects & ~sprite[i].style.effects);
+                style.effects = sprite[i].style.effects;
             }
 
-            if (state.style.fg_color != sprite[i].style.fg_color || state.style.fg_bright != sprite[i].style.fg_bright) {
-                tr_state_fg_color(&state, sprite[i].style.fg_color, sprite[i].style.fg_bright);
-                changed = true;
+            if (style.fg_color != sprite[i].style.fg_color || style.fg_bright != sprite[i].style.fg_bright) {
+                tr_fg_color(sprite[i].style.fg_color, sprite[i].style.fg_bright);
+                style.fg_color = sprite[i].style.fg_color;
+                style.fg_bright = sprite[i].style.fg_bright;
             }
 
-            if (state.style.bg_color != sprite[i].style.bg_color || state.style.bg_bright != sprite[i].style.bg_bright) {
-                tr_state_bg_color(&state, sprite[i].style.bg_color, sprite[i].style.bg_bright);
-                changed = true;
+            if (style.bg_color != sprite[i].style.bg_color || style.bg_bright != sprite[i].style.bg_bright) {
+                tr_bg_color(sprite[i].style.bg_color, sprite[i].style.bg_bright);
+                style.bg_color = sprite[i].style.bg_color;
+                style.bg_bright = sprite[i].style.bg_bright;
             }
 
-            // if (changed)
-                // tr_state_apply(&state);
-
-            // putchar(sprite[i].ch);
-			printf("EFFECTS: %d, FG: %d, BG: %d\n", state.style.effects, state.style.fg_color, state.style.bg_color);
+            putchar(sprite[i].ch);
         }
         tr_reset();
     }
+}
+
+// Helper functions
+void tr_log_effects(TrEffect effects) {
+    if (effects == TR_EFFECT_DEFAULT) {
+        fputs("EFFECT_DEFAULT", stdout);
+        return;
+    }
+    if (effects & TR_BOLD)
+        fputs("BOLD ", stdout);
+
+    if (effects & TR_DIM)
+        fputs("DIM ", stdout);
+
+    if (effects & TR_ITALIC)
+        fputs("ITALIC ", stdout);
+
+    if (effects & TR_UNDERLINE)
+        fputs("UNDERLINE ", stdout);
+
+    if (effects & TR_BLINK)
+        fputs("BLINK ", stdout);
+
+    if (effects & TR_INVERT)
+        fputs("INVERT ", stdout);
+
+    if (effects & TR_HIDDEN)
+        fputs("HIDDEN ", stdout);
+
+    if (effects & TR_STRIKETHROUGH)
+        fputs("STRIKETHROUGH ", stdout);
+}
+void tr_log_color(TrColor color, bool bright) {
+    if (bright && color != TR_COLOR_DEFAULT)
+        fputs("Bright ", stdout);
+
+    if (color == TR_BLACK)
+        fputs("BLACK", stdout);
+    else if (color == TR_RED)
+        fputs("RED", stdout);
+    else if (color == TR_GREEN)
+        fputs("GREEN", stdout);
+    else if (color == TR_YELLOW)
+        fputs("YELLOW", stdout);
+    else if (color == TR_BLUE)
+        fputs("BLUE", stdout);
+    else if (color == TR_MAGENTA)
+        fputs("MAGENTA", stdout);
+    else if (color == TR_CYAN)
+        fputs("CYAN", stdout);
+    else if (color == TR_WHITE)
+        fputs("WHITE", stdout);
+    else if (color == TR_COLOR_DEFAULT)
+        fputs("COLOR_DEFAULT", stdout);
 }
 #endif
