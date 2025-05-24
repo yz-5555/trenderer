@@ -3,10 +3,14 @@
 #define TRENDERER_IMPLEMENTATION
 #include "../../trenderer.h"
 
+#include <Windows.h>
 #include <conio.h>
 #include <stdlib.h>
 #include <time.h>
 
+void delay(int ms) {
+    Sleep(ms);
+}
 void init_background(TrPixel *bg) {
     for (int i = 0; i < BG_WIDTH * BG_HEIGHT; i += 1) {
         bg[i].ch = ' ';

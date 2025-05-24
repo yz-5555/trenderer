@@ -37,7 +37,7 @@ typedef enum TrColor {
     TR_MAGENTA = 5,
     TR_CYAN = 6,
     TR_WHITE = 7,
-    TR_COLOR_DEFAULT = 9
+    TR_COLOR_DEFAULT = 9,
 } TrColor;
 void tr_fg_color(TrColor fg_color, bool bright);
 void tr_bg_color(TrColor bg_color, bool bright);
@@ -248,8 +248,6 @@ void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) 
     for (int iy = 0; iy < height; iy += 1) {
         tr_move_cursor(x, y + iy);
 
-        tr_style(&style);
-
         for (int ix = 0; ix < width; ix += 1) {
             int i = ix + iy * width;
 
@@ -260,20 +258,22 @@ void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) 
             }
 
             if (style.fg_color != sprite[i].style.fg_color || style.fg_bright != sprite[i].style.fg_bright) {
-                tr_fg_color(sprite[i].style.fg_color, sprite[i].style.fg_bright);
                 style.fg_color = sprite[i].style.fg_color;
                 style.fg_bright = sprite[i].style.fg_bright;
+                tr_fg_color(style.fg_color, style.fg_bright);
             }
 
             if (style.bg_color != sprite[i].style.bg_color || style.bg_bright != sprite[i].style.bg_bright) {
-                tr_bg_color(sprite[i].style.bg_color, sprite[i].style.bg_bright);
                 style.bg_color = sprite[i].style.bg_color;
                 style.bg_bright = sprite[i].style.bg_bright;
+                tr_bg_color(style.bg_color, style.bg_bright);
             }
 
             putchar(sprite[i].ch);
         }
-        tr_reset();
+		style.bg_color = TR_COLOR_DEFAULT;
+		style.bg_bright = false;
+		tr_bg_color(style.bg_color, style.bg_bright);
     }
 }
 

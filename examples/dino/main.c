@@ -1,5 +1,4 @@
 #include "dino.h"
-#include <Windows.h>
 
 int main(void) {
     TrPixel bg[BG_WIDTH * BG_HEIGHT];
@@ -30,7 +29,7 @@ int main(void) {
         draw_background(bg);
         draw_dino(&dino, dino_sprite);
 
-        Sleep(33);
+        delay(33);
     }
     return 0;
 }

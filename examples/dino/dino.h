@@ -67,6 +67,8 @@ typedef struct Obstacle {
     bool is_alive;
 } Obstacle;
 
+void delay(int ms);
+
 void init_obstacle(Obstacle *obstacle, ObstacleType type);
 
 void init_obstacles(Obstacle *obstacles);
