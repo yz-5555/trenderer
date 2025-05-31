@@ -7,12 +7,12 @@
 void tr_clear(void);
 
 // Cursor control
-void tr_move_cursor(int x, int y);
+void tr_move_cursor(unsigned int x, unsigned int y);
 void tr_show_cursor(bool visible);
 
 // Effects
 typedef enum TrEffect {
-    TR_EFFECT_DEFAULT = 0,
+    TR_DEFAULT_EFFECT = 0,
     TR_BOLD = 1 << 0,
     TR_DIM = 1 << 1,
     TR_ITALIC = 1 << 2,
@@ -37,7 +37,7 @@ typedef enum TrColor {
     TR_MAGENTA = 5,
     TR_CYAN = 6,
     TR_WHITE = 7,
-    TR_COLOR_DEFAULT = 9,
+    TR_DEFAULT_COLOR = 9,
 } TrColor;
 void tr_fg_color(TrColor fg_color, bool bright);
 void tr_bg_color(TrColor bg_color, bool bright);
@@ -81,7 +81,7 @@ void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height);
 // Helper functions
 void tr_log_effects(TrEffect effects);
 void tr_log_color(TrColor color, bool bright);
-#endif
+#endif // TRENDERER_H
 
 #ifdef TRENDERER_IMPLEMENTATION
 
@@ -93,7 +93,7 @@ void tr_clear(void) {
 }
 
 // Cursor control
-void tr_move_cursor(int x, int y) {
+void tr_move_cursor(unsigned int x, unsigned int y) {
     printf("\x1b[%d;%dH", y + 1, x + 1);
 }
 void tr_show_cursor(bool visible) {
@@ -160,12 +160,12 @@ void tr_reset(void) {
 
 // Colors
 void tr_fg_color(TrColor fg_color, bool bright) {
-    if (fg_color == TR_COLOR_DEFAULT)
+    if (fg_color == TR_DEFAULT_COLOR)
         bright = false;
     printf("\x1b[%dm", bright ? (90 + (int)fg_color) : (30 + (int)fg_color));
 }
 void tr_bg_color(TrColor bg_color, bool bright) {
-    if (bg_color == TR_COLOR_DEFAULT)
+    if (bg_color == TR_DEFAULT_COLOR)
         bright = false;
     printf("\x1b[%dm", bright ? (100 + (int)bg_color) : (40 + (int)bg_color));
 }
@@ -179,13 +179,13 @@ void tr_style(const TrStyle *style) {
 
 // State renderer
 void tr_state_init(TrState *state) {
-    state->style.effects = TR_EFFECT_DEFAULT;
-    state->style.fg_color = TR_COLOR_DEFAULT;
+    state->style.effects = TR_DEFAULT_EFFECT;
+    state->style.fg_color = TR_DEFAULT_COLOR;
     state->style.fg_bright = false;
-    state->style.bg_color = TR_COLOR_DEFAULT;
+    state->style.bg_color = TR_DEFAULT_COLOR;
     state->style.bg_bright = false;
-    state->effects_to_add = TR_EFFECT_DEFAULT;
-    state->effects_to_remove = TR_EFFECT_DEFAULT;
+    state->effects_to_add = TR_DEFAULT_EFFECT;
+    state->effects_to_remove = TR_DEFAULT_EFFECT;
     state->fg_changed = false;
     state->bg_changed = false;
 }
@@ -216,11 +216,11 @@ void tr_state_bg_color(TrState *state, TrColor bg_color, bool bright) {
     }
 }
 void tr_state_apply(TrState *state) {
-    if (state->effects_to_add != TR_EFFECT_DEFAULT) {
+    if (state->effects_to_add != TR_DEFAULT_EFFECT) {
         state->style.effects = (TrEffect)(state->style.effects | state->effects_to_add);
         tr_effects(state->effects_to_add);
     }
-    if (state->effects_to_remove != TR_EFFECT_DEFAULT) {
+    if (state->effects_to_remove != TR_DEFAULT_EFFECT) {
         state->style.effects = (TrEffect)(state->style.effects & ~state->effects_to_remove);
         tr_remove_effects(state->effects_to_remove);
     }
@@ -229,8 +229,8 @@ void tr_state_apply(TrState *state) {
     if (state->bg_changed)
         tr_bg_color(state->style.bg_color, state->style.bg_bright);
 
-    state->effects_to_add = TR_EFFECT_DEFAULT;
-    state->effects_to_remove = TR_EFFECT_DEFAULT;
+    state->effects_to_add = TR_DEFAULT_EFFECT;
+    state->effects_to_remove = TR_DEFAULT_EFFECT;
     state->fg_changed = false;
     state->bg_changed = false;
 }
@@ -238,10 +238,10 @@ void tr_state_apply(TrState *state) {
 // Sprite renderer
 void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) {
     TrStyle style = {
-        .effects = TR_EFFECT_DEFAULT,
-        .fg_color = TR_COLOR_DEFAULT,
+        .effects = TR_DEFAULT_EFFECT,
+        .fg_color = TR_DEFAULT_COLOR,
         .fg_bright = false,
-        .bg_color = TR_COLOR_DEFAULT,
+        .bg_color = TR_DEFAULT_COLOR,
         .bg_bright = false,
     };
 
@@ -271,16 +271,16 @@ void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) 
 
             putchar(sprite[i].ch);
         }
-		style.bg_color = TR_COLOR_DEFAULT;
-		style.bg_bright = false;
-		tr_bg_color(style.bg_color, style.bg_bright);
+        style.bg_color = TR_DEFAULT_COLOR;
+        style.bg_bright = false;
+        tr_bg_color(style.bg_color, style.bg_bright);
     }
 }
 
 // Helper functions
 void tr_log_effects(TrEffect effects) {
-    if (effects == TR_EFFECT_DEFAULT) {
-        fputs("EFFECT_DEFAULT", stdout);
+    if (effects == TR_DEFAULT_EFFECT) {
+        fputs("DEFAULT_EFFECT", stdout);
         return;
     }
     if (effects & TR_BOLD)
@@ -308,7 +308,7 @@ void tr_log_effects(TrEffect effects) {
         fputs("STRIKETHROUGH ", stdout);
 }
 void tr_log_color(TrColor color, bool bright) {
-    if (bright && color != TR_COLOR_DEFAULT)
+    if (bright && color != TR_DEFAULT_COLOR)
         fputs("Bright ", stdout);
 
     if (color == TR_BLACK)
@@ -327,7 +327,7 @@ void tr_log_color(TrColor color, bool bright) {
         fputs("CYAN", stdout);
     else if (color == TR_WHITE)
         fputs("WHITE", stdout);
-    else if (color == TR_COLOR_DEFAULT)
-        fputs("COLOR_DEFAULT", stdout);
+    else if (color == TR_DEFAULT_COLOR)
+        fputs("DEFAULT_COLOR", stdout);
 }
-#endif
+#endif // TRENDERER_IMPLEMENTATION

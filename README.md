@@ -29,7 +29,7 @@ void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height);
 #### 4. More controls
 ```c
 void tr_clear(void); // Clear the screen
-void tr_move_cursor(int x, int y);
+void tr_move_cursor(unsigned int x, unsigned int y);
 void tr_show_cursor(bool visible);
 ```
 ## Installation

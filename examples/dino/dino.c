@@ -14,8 +14,8 @@ void delay(int ms) {
 void init_background(TrPixel *bg) {
     for (int i = 0; i < BG_WIDTH * BG_HEIGHT; i += 1) {
         bg[i].ch = ' ';
-        bg[i].style.effects = TR_EFFECT_DEFAULT;
-        bg[i].style.fg_color = TR_COLOR_DEFAULT;
+        bg[i].style.effects = TR_DEFAULT_EFFECT;
+        bg[i].style.fg_color = TR_DEFAULT_COLOR;
         bg[i].style.fg_bright = false;
         bg[i].style.bg_color = BG_COLOR;
         bg[i].style.bg_bright = false;
