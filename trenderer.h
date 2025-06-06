@@ -7,7 +7,7 @@
 void tr_clear(void);
 
 // Cursor control
-void tr_move_cursor(unsigned int x, unsigned int y);
+void tr_move_cursor(int x, int y);
 void tr_show_cursor(bool visible);
 
 // Effects
@@ -38,6 +38,7 @@ typedef enum TrColor {
     TR_CYAN = 6,
     TR_WHITE = 7,
     TR_DEFAULT_COLOR = 9,
+    TR_TRANSPARENT = 10
 } TrColor;
 void tr_fg_color(TrColor fg_color, bool bright);
 void tr_bg_color(TrColor bg_color, bool bright);
@@ -54,29 +55,22 @@ typedef struct TrStyle {
 } TrStyle;
 void tr_style(const TrStyle *style);
 
-// State renderer
-typedef struct TrState {
-    TrStyle style;
-
-    TrEffect effects_to_add;
-    TrEffect effects_to_remove;
-
-    bool fg_changed;
-    bool bg_changed;
-} TrState;
-void tr_state_init(TrState *state);
-void tr_state_add_effects(TrState *state, TrEffect effects);
-void tr_state_remove_effects(TrState *state, TrEffect effects);
-void tr_state_fg_color(TrState *state, TrColor fg_color, bool bright);
-void tr_state_bg_color(TrState *state, TrColor bg_color, bool bright);
-void tr_state_apply(TrState *state);
-
 // Sprite renderer
 typedef struct TrPixel {
     char ch;
     TrStyle style;
 } TrPixel;
 void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height);
+
+// Frame buffers
+typedef struct TrFrameBuffers {
+    int width, height;
+    TrPixel *data;
+} TrFrameBuffers;
+void tr_init_buffers(TrFrameBuffers *buffers, int width, int height);
+void tr_clear_buffers(TrFrameBuffers *buffers, TrColor bg_color, bool bg_bright);
+void tr_draw_buffers(const TrFrameBuffers *curr_buffers, const TrFrameBuffers *prev_buffers);
+void tr_free_buffers(TrFrameBuffers *buffers);
 
 // Helper functions
 void tr_log_effects(TrEffect effects);
@@ -86,6 +80,7 @@ void tr_log_color(TrColor color, bool bright);
 #ifdef TRENDERER_IMPLEMENTATION
 
 #include <stdio.h>
+#include <stdlib.h>
 
 // Screen & Window control
 void tr_clear(void) {
@@ -93,7 +88,7 @@ void tr_clear(void) {
 }
 
 // Cursor control
-void tr_move_cursor(unsigned int x, unsigned int y) {
+void tr_move_cursor(int x, int y) {
     printf("\x1b[%d;%dH", y + 1, x + 1);
 }
 void tr_show_cursor(bool visible) {
@@ -160,11 +155,15 @@ void tr_reset(void) {
 
 // Colors
 void tr_fg_color(TrColor fg_color, bool bright) {
+    if (fg_color == TR_TRANSPARENT)
+        return;
     if (fg_color == TR_DEFAULT_COLOR)
         bright = false;
     printf("\x1b[%dm", bright ? (90 + (int)fg_color) : (30 + (int)fg_color));
 }
 void tr_bg_color(TrColor bg_color, bool bright) {
+    if (bg_color == TR_TRANSPARENT)
+        return;
     if (bg_color == TR_DEFAULT_COLOR)
         bright = false;
     printf("\x1b[%dm", bright ? (100 + (int)bg_color) : (40 + (int)bg_color));
@@ -177,66 +176,8 @@ void tr_style(const TrStyle *style) {
     tr_bg_color(style->bg_color, style->bg_bright);
 }
 
-// State renderer
-void tr_state_init(TrState *state) {
-    state->style.effects = TR_DEFAULT_EFFECT;
-    state->style.fg_color = TR_DEFAULT_COLOR;
-    state->style.fg_bright = false;
-    state->style.bg_color = TR_DEFAULT_COLOR;
-    state->style.bg_bright = false;
-    state->effects_to_add = TR_DEFAULT_EFFECT;
-    state->effects_to_remove = TR_DEFAULT_EFFECT;
-    state->fg_changed = false;
-    state->bg_changed = false;
-}
-void tr_state_add_effects(TrState *state, TrEffect effects) {
-    state->effects_to_add = (TrEffect)(state->effects_to_add | effects);
-}
-void tr_state_remove_effects(TrState *state, TrEffect effects) {
-    state->effects_to_remove = (TrEffect)(state->effects_to_remove | effects);
-}
-void tr_state_fg_color(TrState *state, TrColor fg_color, bool bright) {
-    if (state->style.fg_color != fg_color) {
-        state->style.fg_color = fg_color;
-        state->fg_changed = true;
-    }
-    if (state->style.fg_bright != bright) {
-        state->style.fg_bright = bright;
-        state->fg_changed = true;
-    }
-}
-void tr_state_bg_color(TrState *state, TrColor bg_color, bool bright) {
-    if (state->style.bg_color != bg_color) {
-        state->style.bg_color = bg_color;
-        state->bg_changed = true;
-    }
-    if (state->style.bg_bright != bright) {
-        state->style.bg_bright = bright;
-        state->bg_changed = true;
-    }
-}
-void tr_state_apply(TrState *state) {
-    if (state->effects_to_add != TR_DEFAULT_EFFECT) {
-        state->style.effects = (TrEffect)(state->style.effects | state->effects_to_add);
-        tr_effects(state->effects_to_add);
-    }
-    if (state->effects_to_remove != TR_DEFAULT_EFFECT) {
-        state->style.effects = (TrEffect)(state->style.effects & ~state->effects_to_remove);
-        tr_remove_effects(state->effects_to_remove);
-    }
-    if (state->fg_changed)
-        tr_fg_color(state->style.fg_color, state->style.fg_bright);
-    if (state->bg_changed)
-        tr_bg_color(state->style.bg_color, state->style.bg_bright);
-
-    state->effects_to_add = TR_DEFAULT_EFFECT;
-    state->effects_to_remove = TR_DEFAULT_EFFECT;
-    state->fg_changed = false;
-    state->bg_changed = false;
-}
-
 // Sprite renderer
-void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) {
+void tr_draw_sprite(const TrPixel *sprite, int int x, int y, int width, int height) {
     TrStyle style = {
         .effects = TR_DEFAULT_EFFECT,
         .fg_color = TR_DEFAULT_COLOR,
@@ -277,6 +218,69 @@ void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) 
     }
 }
 
+// Frame buffers
+void tr_init_buffers(TrFrameBuffers *buffers, int width, int height) {
+    buffers->width = width;
+    buffers->height = height;
+    buffers->data = (TrPixel *)malloc(width * height * sizeof(TrPixel));
+
+	for (int i = 0; i < width * height; i += 1) {
+		buffers->data[i].ch = NULL;
+		buffers->data[i].effects = TR_DEFAULT_EFFECT;
+		buffers->data[i].fg_color = TR_DEFAULT_COLOR;
+		buffers->data[i].fg_bright = false;
+		buffers->data[i].bg_color = TR_DEFAULT_COLOR;
+		buffers->data[i].bg_bright = false;
+	}
+}
+void tr_clear_buffers(TrFrameBuffers *buffers, TrColor bg_color, bool bg_bright) {
+    for (int i = 0; i < buffers->width * buffers->height; i += 1) {
+        buffers->data[i].bg_color = bg_color;
+        buffers->data[i].bg_bright = bg_bright;
+    }
+}
+void tr_draw_buffers(const TrFrameBuffers *curr_buffers, const TrFrameBuffers *prev_buffers) {
+    TrStyle style = {
+        .effects = TR_DEFAULT_EFFECT,
+        .fg_color = TR_DEFAULT_COLOR,
+        .fg_bright = false,
+        .bg_color = TR_DEFAULT_COLOR,
+        .bg_bright = false,
+    };
+
+    for (int iy = 0; iy < height; iy += 1) {
+        for (int ix = 0; ix < width; ix += 1) {
+            int i = ix + iy * width;
+
+            if (style.effects != buffers->data[i].style.effects) {
+                tr_effects(buffers->data[i].style.effects & ~style.effects);
+                tr_remove_effects(style.effects & ~buffers->data[i].style.effects);
+                style.effects = buffers->data[i].style.effects;
+            }
+
+            if (style.fg_color != buffers->data[i].style.fg_color || style.fg_bright != buffers->data[i].style.fg_bright) {
+                style.fg_color = buffers->data[i].style.fg_color;
+                style.fg_bright = buffers->data[i].style.fg_bright;
+                tr_fg_color(style.fg_color, style.fg_bright);
+            }
+
+            if (style.bg_color != buffers->data[i].style.bg_color || style.bg_bright != buTR_BLUEffers->data[i].style.bg_bright) {
+                style.bg_color = buffers->data[i].style.bg_color;
+                style.bg_bright = buffers->data[i].style.bg_bright;
+                tr_bg_color(style.bg_color, style.bg_bright);
+            }
+
+            putchar(sprite[i].ch);
+        }
+        style.bg_color = TR_DEFAULT_COLOR;
+        style.bg_bright = false;
+        tr_bg_color(style.bg_color, style.bg_bright);
+    }
+}
+void tr_free_buffers(TrFrameBuffers *buffers) {
+    free(buffers->data);
+    buffers->data = NULL;
+}
 // Helper functions
 void tr_log_effects(TrEffect effects) {
     if (effects == TR_DEFAULT_EFFECT) {
