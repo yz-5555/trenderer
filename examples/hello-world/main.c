@@ -1,3 +1,6 @@
+#define TRENDERER_16COLORS
+#define TRENDERER_256COLORS
+#define TRENDERER_TRUECOLORS
 #define TRENDERER_IMPLEMENTATION
 #include "../../trenderer.h"
 
@@ -5,36 +8,24 @@
 
 int main(void) {
     tr_effects(TR_BOLD);
-    tr_fg_color(TR_RED, true);
-    tr_bg_color(TR_BLUE, false);
-    printf("Hello,");
-    tr_reset();
+    tr_fg_color_16(TR_BLUE_16);
+    tr_bg_color_16(TR_YELLOW_16);
+    printf("Hello, ");
+    tr_remove_effects(TR_BOLD);
 
     tr_effects(TR_ITALIC | TR_UNDERLINE);
-    tr_fg_color(TR_CYAN, false);
-    tr_bg_color(TR_MAGENTA, false);
-    printf("World!");
-    tr_reset();
+    tr_fg_color_256(TR_CYAN_256);
+    tr_bg_color_256(TR_MAGENTA_256);
+    printf("World! ");
+    tr_remove_effects(TR_UNDERLINE);
+
+	tr_effects(TR_STRIKETHROUGH | TR_DIM | TR_ITALIC);
+	tr_fg_color(TR_ORANGE);
+	tr_bg_color(TR_PINK);
+	printf("This is TRENDERER.");
+	tr_reset();
 
     printf("\n");
-
-    TrState state;
-    tr_state_init(&state);
-
-    tr_state_add_effects(&state, TR_BOLD | TR_ITALIC | TR_STRIKETHROUGH);
-    tr_state_fg_color(&state, TR_RED, true);
-    tr_state_bg_color(&state, TR_BLUE, false);
-    tr_state_apply(&state);
-    printf("Hello,");
-
-    tr_state_add_effects(&state, TR_UNDERLINE);
-    tr_state_remove_effects(&state, TR_BOLD | TR_STRIKETHROUGH);
-    tr_state_fg_color(&state, TR_CYAN, false);
-    tr_state_bg_color(&state, TR_MAGENTA, false);
-    tr_state_apply(&state);
-    printf("World!");
-
-    tr_reset();
 
     return 0;
 }
