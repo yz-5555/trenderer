@@ -38,4 +38,5 @@ Just add `trenderer.h` to your project and it's good to go.
 ## Todo
 - [ ] Add more example codes.
 - [ ] Write detailed API docs.
-- [ ] Add 256 colors support.
+- [x] Add 256 and true colors support.
+- [ ] Frame buffers

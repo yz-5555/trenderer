@@ -1,6 +1,3 @@
-#define TRENDERER_16COLORS
-#define TRENDERER_256COLORS
-#define TRENDERER_TRUECOLORS
 #define TRENDERER_IMPLEMENTATION
 #include "../../trenderer.h"
 
@@ -19,11 +16,11 @@ int main(void) {
     printf("World! ");
     tr_remove_effects(TR_UNDERLINE);
 
-	tr_effects(TR_STRIKETHROUGH | TR_DIM | TR_ITALIC);
-	tr_fg_color(TR_ORANGE);
-	tr_bg_color(TR_PINK);
-	printf("This is TRENDERER.");
-	tr_reset();
+    tr_effects(TR_STRIKETHROUGH | TR_DIM | TR_ITALIC);
+    tr_fg_color(TR_ORANGE);
+    tr_bg_color(TR_PINK);
+    printf("This is TRENDERER.");
+    tr_reset();
 
     printf("\n");
 
