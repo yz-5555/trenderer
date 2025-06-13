@@ -29,13 +29,37 @@ void tr_reset_effects(void);
 void tr_reset(void);
 
 // Colors
+typedef enum TrColorsMode {
+    TR_COLORS_16,
+    TR_COLORS_256,
+    TR_COLORS_TRUE,
+} TrColorsMode;
+void tr_fg_color(uint32_t fg_color, TrColorsMode colors_mode);
+void tr_bg_color(uint32_t bg_color, TrColorsMode colors_mode);
 void tr_fg_reset(void);
 void tr_bg_reset(void);
 
-// Colors - ANSI 16 colors
-void tr_fg_color_16(uint32_t fg_color);
-void tr_bg_color_16(uint32_t bg_color);
+// Colors - Helper functions
+static inline uint32_t tr_gray_256(uint8_t scale) {
+    return (scale > 23) ? 232 : (232 + scale);
+}
+static inline uint32_t tr_rgb_256(uint8_t r, uint8_t g, uint8_t b) {
+    return (r < 6 && g < 6 && b < 6) ? (16 + 36 * r + 6 * g + b) : 16;
+}
+static inline uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b) {
+    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+}
+static inline uint8_t tr_rgb_r(uint32_t rgb) {
+    return (rgb >> 16) & 0xFF;
+}
+static inline uint8_t tr_rgb_g(uint32_t rgb) {
+    return (rgb >> 8) & 0xFF;
+}
+static inline uint8_t tr_rgb_b(uint32_t rgb) {
+    return rgb & 0xFF;
+}
 
+// Colors - ANSI 16 colors
 #define TR_BLACK_16 30
 #define TR_RED_16 31
 #define TR_GREEN_16 32
@@ -54,16 +78,9 @@ void tr_bg_color_16(uint32_t bg_color);
 #define TR_BRIGHT_CYAN_16 46
 #define TR_BRIGHT_WHITE_16 47
 
-// Colors - ANSI 256 colors
-static inline uint32_t tr_gray_256(uint8_t scale) {
-    return (scale > 23) ? 232 : (232 + scale);
-}
-static inline uint32_t tr_rgb_256(uint8_t r, uint8_t g, uint8_t b) {
-    return (r < 6 && g < 6 && b < 6) ? (16 + 36 * r + 6 * g + b) : 16;
-}
-void tr_fg_color_256(uint32_t fg_color);
-void tr_bg_color_256(uint32_t bg_color);
+#define TR_DEFAULT_COLOR_16 39
 
+// Colors - ANSI 256 colors
 #define TR_BLACK_256 0
 #define TR_RED_256 1
 #define TR_GREEN_256 2
@@ -83,21 +100,6 @@ void tr_bg_color_256(uint32_t bg_color);
 #define TR_BRIGHT_WHITE_256 15
 
 // Colors - True colors
-static inline uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b) {
-    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
-}
-static inline uint8_t tr_rgb_r(uint32_t rgb) {
-    return (rgb >> 16) & 0xFF;
-}
-static inline uint8_t tr_rgb_g(uint32_t rgb) {
-    return (rgb >> 8) & 0xFF;
-}
-static inline uint8_t tr_rgb_b(uint32_t rgb) {
-    return rgb & 0xFF;
-}
-void tr_fg_color(uint32_t fg_color);
-void tr_bg_color(uint32_t bg_color);
-
 #define TR_BLACK tr_rgb(0, 0, 0)
 #define TR_RED tr_rgb(255, 0, 0)
 #define TR_GREEN tr_rgb(0, 255, 0)
@@ -112,35 +114,33 @@ void tr_bg_color(uint32_t bg_color);
 #define TR_PINK tr_rgb(255, 105, 180)
 #define TR_SKYBLUE tr_rgb(135, 206, 235)
 
-// Style
-typedef enum TrColorsMode {
-    TR_COLORS_16,
-    TR_COLORS_256,
-    TR_COLORS_TRUE,
-} TrColorsMode;
+// Styles
 typedef struct TrStyle {
     TrEffect effects;
     uint32_t fg_color;
+    TrColorsMode fg_mode;
     uint32_t bg_color;
-    TrColorsMode colors_mode;
+    TrColorsMode bg_mode;
 } TrStyle;
 void tr_style(const TrStyle *style);
 
-// Sprite renderer
+// Basic renderer
 typedef struct TrPixel {
     char ch;
     TrStyle style;
 } TrPixel;
-void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height);
+void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y);
+void tr_draw_text(const char *text, int x, int y);
 
 // Frame buffers
-void tr_fb_clear(TrPixel *buffers, int width, int height, uint32_t bg_color);
+void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color);
+void tr_fb_render(void);
+void tr_fb_draw_sprite(TrPixel *fb, int fb_width, int fb_height, const TrPixel *sprite, int sprite_width, int sprite_height, int sprite_x, int sprite_y);
+void tr_fb_draw_text(TrPixel *fb, int fb_width, int fb_height, const char *text, int text_x, int text_y);
 
 // Helper functions
 void tr_log_effects(TrEffect effects);
-void tr_log_color_16(uint32_t color);
-void tr_log_color_256(uint32_t color);
-void tr_log_color(uint32_t color);
+void tr_log_color(uint32_t color, TrColorsMode colors_mode);
 
 #endif // TRENDERER_H
 
@@ -218,6 +218,32 @@ void tr_reset(void) {
 }
 
 // Colors
+void tr_fg_color(uint32_t fg_color, TrColorsMode colors_mode) {
+    switch (colors_mode) {
+    case TR_COLORS_16:
+        printf("\x1b[%dm", fg_color);
+        break;
+    case TR_COLORS_256:
+        printf("\x1b[38;5;%dm", fg_color);
+        break;
+    case TR_COLORS_TRUE:
+        printf("\x1b[38;2;%d;%d;%dm", tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
+        break;
+    }
+}
+void tr_bg_color(uint32_t bg_color, TrColorsMode colors_mode) {
+    switch (colors_mode) {
+    case TR_COLORS_16:
+        printf("\x1b[%dm", 10 + bg_color);
+        break;
+    case TR_COLORS_256:
+        printf("\x1b[48;5;%dm", bg_color);
+        break;
+    case TR_COLORS_TRUE:
+        printf("\x1b[48;2;%d;%d;%dm", tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
+        break;
+    }
+}
 void tr_fg_reset(void) {
     fputs("\x1b[39m", stdout);
 }
@@ -225,90 +251,53 @@ void tr_bg_reset(void) {
     fputs("\x1b[49m", stdout);
 }
 
-// Colors - ANSI 16 colors
-void tr_fg_color_16(uint32_t fg_color) {
-    printf("\x1b[%dm", fg_color);
-}
-void tr_bg_color_16(uint32_t bg_color) {
-    printf("\x1b[%dm", 10 + bg_color);
-}
-
-// Colors - ANSI 256 colors
-void tr_fg_color_256(uint32_t fg_color) {
-    printf("\x1b[38;5;%dm", fg_color);
-}
-void tr_bg_color_256(uint32_t bg_color) {
-    printf("\x1b[48;5;%dm", bg_color);
-}
-
-// Colors - True colors
-void tr_fg_color(uint32_t fg_color) {
-    printf("\x1b[38;2;%d;%d;%dm", tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
-}
-void tr_bg_color(uint32_t bg_color) {
-    printf("\x1b[48;2;%d;%d;%dm", tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
-}
-
-// Style
+// Styles
 void tr_style(const TrStyle *style) {
     tr_effects(style->effects);
-
-    switch (style->colors_mode) {
-    case TR_COLORS_16:
-        tr_fg_color_16(style->fg_color);
-        tr_bg_color_16(style->bg_color);
-        break;
-    case TR_COLORS_256:
-        tr_fg_color_256(style->fg_color);
-        tr_bg_color_256(style->bg_color);
-        break;
-    case TR_COLORS_TRUE:
-        tr_fg_color(style->fg_color);
-        tr_bg_color(style->bg_color);
-        break;
-    }
+    tr_fg_color(style->fg_color, style->fg_mode);
+    tr_bg_color(style->bg_color, style->bg_mode);
 }
 
-// Sprite renderer
+// Basic renderers
 void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) {
-    // TrStyle style = {
-    //     .effects = TR_DEFAULT_EFFECT,
-    //     .fg_color = TR_DEFAULT_COLOR,
-    //     .fg_bright = false,
-    //     .bg_color = TR_DEFAULT_COLOR,
-    //     .bg_bright = false,
-    // };
-    //
-    // for (int iy = 0; iy < height; iy += 1) {
-    //     tr_move_cursor(x, y + iy);
-    //
-    //     for (int ix = 0; ix < width; ix += 1) {
-    //         int i = ix + iy * width;
-    //
-    //         if (style.effects != sprite[i].style.effects) {
-    //             tr_effects(sprite[i].style.effects & ~style.effects);
-    //             tr_remove_effects(style.effects & ~sprite[i].style.effects);
-    //             style.effects = sprite[i].style.effects;
-    //         }
-    //
-    //         if (style.fg_color != sprite[i].style.fg_color || style.fg_bright != sprite[i].style.fg_bright) {
-    //             style.fg_color = sprite[i].style.fg_color;
-    //             style.fg_bright = sprite[i].style.fg_bright;
-    //             tr_fg_color(style.fg_color, style.fg_bright);
-    //         }
-    //
-    //         if (style.bg_color != sprite[i].style.bg_color || style.bg_bright != sprite[i].style.bg_bright) {
-    //             style.bg_color = sprite[i].style.bg_color;
-    //             style.bg_bright = sprite[i].style.bg_bright;
-    //             tr_bg_color(style.bg_color, style.bg_bright);
-    //         }
-    //
-    //         putchar(sprite[i].ch);
-    //     }
-    //     style.bg_color = TR_DEFAULT_COLOR;
-    //     style.bg_bright = false;
-    //     tr_bg_color(style.bg_color, style.bg_bright);
-    // }
+    TrStyle style = {
+        .effects = TR_DEFAULT_EFFECT,
+        .fg_color = TR_DEFAULT_COLOR_16,
+        .fg_mode = TR_COLORS_16,
+        .bg_color = TR_DEFAULT_COLOR_16,
+        .bg_mode = TR_COLORS_16,
+    };
+
+    for (int iy = 0; iy < height; iy += 1) {
+        tr_move_cursor(x, y + iy);
+
+        for (int ix = 0; ix < width; ix += 1) {
+            int i = ix + iy * width;
+
+            if (style.effects != sprite[i].style.effects) {
+                tr_effects(sprite[i].style.effects & ~style.effects);
+                tr_remove_effects(style.effects & ~sprite[i].style.effects);
+                style.effects = sprite[i].style.effects;
+            }
+
+            if (style.fg_color != sprite[i].style.fg_color || style.fg_mode != sprite[i].style.fg_mode) {
+                style.fg_color = sprite[i].style.fg_color;
+                style.fg_mode = sprite[i].style.fg_mode;
+                tr_fg_color(style.fg_color, style.fg_mode);
+            }
+
+            if (style.bg_color != sprite[i].style.bg_color || style.bg_mode != sprite[i].style.bg_mode) {
+                style.bg_color = sprite[i].style.bg_color;
+                style.bg_mode = sprite[i].style.bg_mode;
+                tr_bg_color(style.bg_color, style.bg_mode);
+            }
+
+            putchar(sprite[i].ch);
+        }
+        style.bg_color = TR_DEFAULT_COLOR_16;
+        style.bg_mode = TR_COLORS_16;
+        tr_bg_reset();
+    }
 }
 
 // Helper functions
@@ -341,10 +330,6 @@ void tr_log_effects(TrEffect effects) {
     if (effects & TR_STRIKETHROUGH)
         fputs("STRIKETHROUGH ", stdout);
 }
-void tr_log_color_16(uint32_t color) {
-}
-void tr_log_color_256(uint32_t color) {
-}
-void tr_log_color(uint32_t color) {
+void tr_log_color(uint32_t color, TrColorsMode colors_mode) {
 }
 #endif // TRENDERER_IMPLEMENTATION
