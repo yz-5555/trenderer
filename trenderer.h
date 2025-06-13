@@ -259,7 +259,7 @@ void tr_style(const TrStyle *style) {
 }
 
 // Basic renderers
-void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height) {
+void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y) {
     TrStyle style = {
         .effects = TR_DEFAULT_EFFECT,
         .fg_color = TR_DEFAULT_COLOR_16,

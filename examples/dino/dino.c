@@ -15,14 +15,14 @@ void init_background(TrPixel *bg) {
     for (int i = 0; i < BG_WIDTH * BG_HEIGHT; i += 1) {
         bg[i].ch = ' ';
         bg[i].style.effects = TR_DEFAULT_EFFECT;
-        bg[i].style.fg_color = TR_DEFAULT_COLOR;
-        bg[i].style.fg_bright = false;
+        bg[i].style.fg_color = TR_DEFAULT_COLOR_16;
+        bg[i].style.fg_mode = TR_COLORS_16;
         bg[i].style.bg_color = BG_COLOR;
-        bg[i].style.bg_bright = false;
+        bg[i].style.bg_mode = TR_COLORS_16;
     }
 }
 void draw_background(const TrPixel *bg) {
-    tr_draw_sprite(bg, 0, 0, BG_WIDTH, BG_HEIGHT);
+    tr_draw_sprite(bg, BG_WIDTH, BG_HEIGHT, 0, 0);
 }
 void init_dino(Dino *dino, TrPixel *dino_sprite) {
     dino->pos.x = 1;
@@ -38,17 +38,17 @@ void init_dino(Dino *dino, TrPixel *dino_sprite) {
 
     dino_sprite[0].ch = 'P';
     dino_sprite[0].style.effects = TR_BOLD | TR_UNDERLINE;
-    dino_sprite[0].style.fg_color = TR_GREEN;
-    dino_sprite[0].style.fg_bright = false;
+    dino_sprite[0].style.fg_color = TR_GREEN_16;
+    dino_sprite[0].style.fg_mode = TR_COLORS_16;
     dino_sprite[0].style.bg_color = BG_COLOR;
-    dino_sprite[0].style.bg_bright = false;
+    dino_sprite[0].style.bg_mode = TR_COLORS_16;
 
     dino_sprite[1].ch = 'n';
     dino_sprite[1].style.effects = TR_BOLD;
-    dino_sprite[1].style.fg_color = TR_GREEN;
-    dino_sprite[1].style.fg_bright = false;
+    dino_sprite[1].style.fg_color = TR_GREEN_16;
+    dino_sprite[1].style.fg_mode = TR_COLORS_16;
     dino_sprite[1].style.bg_color = BG_COLOR;
-    dino_sprite[1].style.bg_bright = false;
+    dino_sprite[1].style.bg_mode = TR_COLORS_16;
 }
 void update_dino(Dino *dino) {
     if (!dino->is_alive)
@@ -78,7 +78,7 @@ void update_dino(Dino *dino) {
     }
 }
 void draw_dino(const Dino *dino, const TrPixel *dino_sprite) {
-    tr_draw_sprite(dino_sprite, dino->pos.x, dino->pos.y, dino->size.x, dino->size.y);
+    tr_draw_sprite(dino_sprite, dino->size.x, dino->size.y, dino->pos.x, dino->pos.y);
 }
 void init_obstacle(Obstacle *obstacle, ObstacleType type) {
     int width = 0, height = 0;
@@ -137,10 +137,10 @@ void draw_obstacles(const Obstacle *obstacles) {
 void init_small_cactus_sprite(TrPixel *small_cactus_sprite) {
     small_cactus_sprite->ch = 'A';
     small_cactus_sprite->style.effects = TR_BOLD | TR_UNDERLINE;
-    small_cactus_sprite->style.fg_color = TR_GREEN;
-    small_cactus_sprite->style.fg_bright = false;
+    small_cactus_sprite->style.fg_color = TR_GREEN_16;
+    small_cactus_sprite->style.fg_mode = TR_COLORS_16;
     small_cactus_sprite->style.bg_color = BG_COLOR;
-    small_cactus_sprite->style.bg_bright = false;
+    small_cactus_sprite->style.bg_mode = TR_COLORS_16;
 }
 void init_big_cactus_sprite(TrPixel *big_cactus_sprite) {
 }

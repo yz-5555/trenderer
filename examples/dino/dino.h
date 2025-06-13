@@ -13,7 +13,7 @@ typedef struct Vec2 {
 #define BG_WIDTH 50
 #define BG_HEIGHT 10
 
-#define BG_COLOR TR_YELLOW
+#define BG_COLOR TR_YELLOW_16
 
 void init_background(TrPixel *bg);
 void draw_background(const TrPixel *bg);
