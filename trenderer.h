@@ -130,13 +130,13 @@ typedef struct TrPixel {
     TrStyle style;
 } TrPixel;
 void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y);
-void tr_draw_text(const char *text, int x, int y);
+void tr_draw_text(const char *text, const TrStyle *style, int x, int y);
 
 // Frame buffers
-void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color);
-void tr_fb_render(void);
+void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color, TrColorsMode colors_mode);
+void tr_fb_render(TrPixel *curr_fb, TrPixel *prev_fb, int fb_width, int fb_height);
 void tr_fb_draw_sprite(TrPixel *fb, int fb_width, int fb_height, const TrPixel *sprite, int sprite_width, int sprite_height, int sprite_x, int sprite_y);
-void tr_fb_draw_text(TrPixel *fb, int fb_width, int fb_height, const char *text, int text_x, int text_y);
+void tr_fb_draw_text(TrPixel *fb, int fb_width, int fb_height, const char *text, const TrStyle *text_style, int text_x, int text_y);
 
 // Helper functions
 void tr_log_effects(TrEffect effects);
@@ -258,7 +258,7 @@ void tr_style(const TrStyle *style) {
     tr_bg_color(style->bg_color, style->bg_mode);
 }
 
-// Basic renderers
+// Basic renderer
 void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y) {
     TrStyle style = {
         .effects = TR_DEFAULT_EFFECT,
@@ -298,6 +298,21 @@ void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y) 
         style.bg_mode = TR_COLORS_16;
         tr_bg_reset();
     }
+}
+void tr_draw_text(const char *text, const TrStyle *style, int x, int y) {
+    tr_move_cursor(x, y);
+    tr_style(style);
+    fputs(text, stdout);
+}
+
+// Frame buffers
+void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color, TrColorsMode colors_mode) {
+}
+void tr_fb_render(TrPixel *curr_fb, TrPixel *prev_fb, int fb_width, int fb_height) {
+}
+void tr_fb_draw_sprite(TrPixel *fb, int fb_width, int fb_height, const TrPixel *sprite, int sprite_width, int sprite_height, int sprite_x, int sprite_y) {
+}
+void tr_fb_draw_text(TrPixel *fb, int fb_width, int fb_height, const char *text, const TrStyle *text_style, int text_x, int text_y) {
 }
 
 // Helper functions
