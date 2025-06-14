@@ -34,8 +34,8 @@ typedef enum TrColorsMode {
     TR_COLORS_256,
     TR_COLORS_TRUE,
 } TrColorsMode;
-void tr_fg_color(uint32_t fg_color, TrColorsMode colors_mode);
-void tr_bg_color(uint32_t bg_color, TrColorsMode colors_mode);
+void tr_fg_color(uint32_t fg_color, TrColorsMode fg_mode);
+void tr_bg_color(uint32_t bg_color, TrColorsMode bg_mode);
 void tr_fg_reset(void);
 void tr_bg_reset(void);
 
@@ -133,7 +133,7 @@ void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y);
 void tr_draw_text(const char *text, const TrStyle *style, int x, int y);
 
 // Frame buffers
-void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color, TrColorsMode colors_mode);
+void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color, TrColorsMode bg_mode);
 void tr_fb_render(TrPixel *curr_fb, TrPixel *prev_fb, int fb_width, int fb_height);
 void tr_fb_draw_sprite(TrPixel *fb, int fb_width, int fb_height, const TrPixel *sprite, int sprite_width, int sprite_height, int sprite_x, int sprite_y);
 void tr_fb_draw_text(TrPixel *fb, int fb_width, int fb_height, const char *text, const TrStyle *text_style, int text_x, int text_y);
@@ -218,8 +218,8 @@ void tr_reset(void) {
 }
 
 // Colors
-void tr_fg_color(uint32_t fg_color, TrColorsMode colors_mode) {
-    switch (colors_mode) {
+void tr_fg_color(uint32_t fg_color, TrColorsMode fg_mode) {
+    switch (fg_mode) {
     case TR_COLORS_16:
         printf("\x1b[%dm", fg_color);
         break;
@@ -231,8 +231,8 @@ void tr_fg_color(uint32_t fg_color, TrColorsMode colors_mode) {
         break;
     }
 }
-void tr_bg_color(uint32_t bg_color, TrColorsMode colors_mode) {
-    switch (colors_mode) {
+void tr_bg_color(uint32_t bg_color, TrColorsMode bg_mode) {
+    switch (bg_mode) {
     case TR_COLORS_16:
         printf("\x1b[%dm", 10 + bg_color);
         break;
@@ -306,7 +306,7 @@ void tr_draw_text(const char *text, const TrStyle *style, int x, int y) {
 }
 
 // Frame buffers
-void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color, TrColorsMode colors_mode) {
+void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color, TrColorsMode bg_mode) {
 }
 void tr_fb_render(TrPixel *curr_fb, TrPixel *prev_fb, int fb_width, int fb_height) {
 }

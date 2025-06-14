@@ -1,42 +1,34 @@
 # TRENDERER
-It's tee-renderer. Surely out of the trend to be trenderer
+Another ANSI library for awesome text rendering in terminals.
 
 ## Why TRENDERER?
   - Beginner friendly.
   - Cross-platform.
   - Header-only.
 ## Key features
-#### 1. Adding styles to console.
+#### 1. Add styles.
 ```c
-void tr_effect(TrEffect e); // BOLD, DIM, UNDERLINE, BLINK, INVERT, HIDDEN, STRIKETHROUGH
-void tr_fg_color(TrColor c, bool bright); // BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE
-void tr_bg_color(TrColor c, bool bright);
+void tr_effect(TrEffect effects); // BOLD, DIM, UNDERLINE, BLINK, INVERT, HIDDEN, STRIKETHROUGH
+void tr_fg_color(uint32_t fg_color, TrColorsMode fg_mode); // Supports ANSI 16, ANSI 256, true colors.
+void tr_bg_color(uint32_t bg_color, TrColorsMode bg_mode);
 ```
-#### 2. State renderer
+#### 2. Draw various contents.
 ```c
-void tr_state_init(TrState *state);
-void tr_state_add_effects(TrState *state, TrEffect effects);
-void tr_state_remove_effects(TrState *state, TrEffect effects);
-void tr_state_fg_color(TrState *state, TrColor fg_color, bool bright);
-void tr_state_bg_color(TrState *state, TrColor bg_color, bool bright);
-void tr_state_apply(TrState *state);
+void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y);
+void tr_draw_text(const char *text, const TrStyle *style, int x, int y);
 ```
-#### 3. Rendering text based sprites & pixels.
+#### 3. Render using frame buffers.
 ```c
-void tr_draw_pixel(TrPixel pixel);
-void tr_draw_sprite(const TrPixel *sprite, int x, int y, int width, int height);
+void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color, TrColorsMode bg_mode);
+void tr_fb_render(TrPixel *curr_fb, TrPixel *prev_fb, int fb_width, int fb_height);
+void tr_fb_draw_sprite(TrPixel *fb, int fb_width, int fb_height, const TrPixel *sprite, int sprite_width, int sprite_height, int sprite_x, int sprite_y);
+void tr_fb_draw_text(TrPixel *fb, int fb_width, int fb_height, const char *text, const TrStyle *text_style, int text_x, int text_y);
 ```
 #### 4. More controls
 ```c
 void tr_clear(void); // Clear the screen
-void tr_move_cursor(unsigned int x, unsigned int y);
+void tr_move_cursor(int x, int y);
 void tr_show_cursor(bool visible);
 ```
 ## Installation
 Just add `trenderer.h` to your project and it's good to go.
-
-## Todo
-- [ ] Add more example codes.
-- [ ] Write detailed API docs.
-- [x] Add 256 and true colors support.
-- [ ] Frame buffers
