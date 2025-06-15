@@ -123,12 +123,15 @@ typedef struct TrStyle {
     TrColorsMode bg_mode;
 } TrStyle;
 void tr_style(const TrStyle *style);
+void tr_copy_style(TrStyle *dest, const TrStyle *src);
 
-// Basic renderer
+// Pixels
 typedef struct TrPixel {
     char ch;
     TrStyle style;
 } TrPixel;
+
+// Basic renderer
 void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y);
 void tr_draw_text(const char *text, const TrStyle *style, int x, int y);
 
@@ -257,6 +260,13 @@ void tr_style(const TrStyle *style) {
     tr_fg_color(style->fg_color, style->fg_mode);
     tr_bg_color(style->bg_color, style->bg_mode);
 }
+void tr_copy_style(TrStyle *dest, const TrStyle *src) {
+    dest->effects = src->effects;
+    dest->fg_color = source->fg_color;
+    dest->fg_mode = source->fg_mode;
+    dest->bg_color = source->bg_color;
+    dest->bg_mode = source->bg_mode;
+}
 
 // Basic renderer
 void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y) {
@@ -307,10 +317,22 @@ void tr_draw_text(const char *text, const TrStyle *style, int x, int y) {
 
 // Frame buffers
 void tr_fb_clear(TrPixel *fb, int fb_width, int fb_height, uint32_t bg_color, TrColorsMode bg_mode) {
+    for (int i = 0; i < fb_width * fb_height; i += 1) {
+        fb[i].style.bg_color = bg_color;
+        fb[i].style.bg_mode = bg_mode;
+    }
 }
 void tr_fb_render(TrPixel *curr_fb, TrPixel *prev_fb, int fb_width, int fb_height) {
 }
 void tr_fb_draw_sprite(TrPixel *fb, int fb_width, int fb_height, const TrPixel *sprite, int sprite_width, int sprite_height, int sprite_x, int sprite_y) {
+    if ((sprite_x < 0 || sprite_x > fb_width - 1) || (sprite_y < 0 || sprite_y > fb_height - 1))
+        return;
+
+    int t = sprite_x + sprite_y * fb_width;
+    for (int i = 0; i < sprite_width * sprite_height; i += 1) {
+        fb[i + t].ch = sprite[i + t];
+        tr_copy_style(&fb[i + t].style, &sprite[i].style);
+    }
 }
 void tr_fb_draw_text(TrPixel *fb, int fb_width, int fb_height, const char *text, const TrStyle *text_style, int text_x, int text_y) {
 }
