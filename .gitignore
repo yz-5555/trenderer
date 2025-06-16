@@ -1,7 +1,8 @@
-/build-hw.bat
-/build-dino.bat
+.clangd
 
-/project.md
+run-hw.bat
+run-dino.bat
 
-/examples/hello-world/hello-world.exe
-/examples/dino/dino.exe
+CMakeLists.txt
+CMakePresets.json
+build/

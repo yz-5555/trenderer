@@ -1,7 +1,7 @@
 #include "dino.h"
 
 #define TRENDERER_IMPLEMENTATION
-#include "../../trenderer.h"
+#include "trenderer.h"
 
 #include <Windows.h>
 #include <conio.h>

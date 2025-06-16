@@ -262,10 +262,10 @@ void tr_style(const TrStyle *style) {
 }
 void tr_copy_style(TrStyle *dest, const TrStyle *src) {
     dest->effects = src->effects;
-    dest->fg_color = source->fg_color;
-    dest->fg_mode = source->fg_mode;
-    dest->bg_color = source->bg_color;
-    dest->bg_mode = source->bg_mode;
+    dest->fg_color = src->fg_color;
+    dest->fg_mode = src->fg_mode;
+    dest->bg_color = src->bg_color;
+    dest->bg_mode = src->bg_mode;
 }
 
 // Basic renderer
@@ -330,7 +330,7 @@ void tr_fb_draw_sprite(TrPixel *fb, int fb_width, int fb_height, const TrPixel *
 
     int t = sprite_x + sprite_y * fb_width;
     for (int i = 0; i < sprite_width * sprite_height; i += 1) {
-        fb[i + t].ch = sprite[i + t];
+        fb[i + t].ch = sprite[i].ch;
         tr_copy_style(&fb[i + t].style, &sprite[i].style);
     }
 }

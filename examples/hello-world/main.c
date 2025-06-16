@@ -1,5 +1,5 @@
 #define TRENDERER_IMPLEMENTATION
-#include "../../trenderer.h"
+#include "trenderer.h"
 
 #include <stdio.h>
 
