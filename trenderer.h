@@ -69,14 +69,14 @@ static inline uint8_t tr_rgb_b(uint32_t rgb) {
 #define TR_CYAN_16 36
 #define TR_WHITE_16 37
 
-#define TR_BRIGHT_BLACK_16 40
-#define TR_BRIGHT_RED_16 41
-#define TR_BRIGHT_GREEN_16 42
-#define TR_BRIGHT_YELLOW_16 43
-#define TR_BRIGHT_BLUE_16 44
-#define TR_BRIGHT_MAGENTA_16 45
-#define TR_BRIGHT_CYAN_16 46
-#define TR_BRIGHT_WHITE_16 47
+#define TR_BRIGHT_BLACK_16 90
+#define TR_BRIGHT_RED_16 91
+#define TR_BRIGHT_GREEN_16 92
+#define TR_BRIGHT_YELLOW_16 93
+#define TR_BRIGHT_BLUE_16 94
+#define TR_BRIGHT_MAGENTA_16 95
+#define TR_BRIGHT_CYAN_16 96
+#define TR_BRIGHT_WHITE_16 97
 
 #define TR_DEFAULT_COLOR_16 39
 
@@ -150,7 +150,6 @@ void tr_log_color(uint32_t color, TrColorsMode colors_mode);
 #ifdef TRENDERER_IMPLEMENTATION
 
 #include <stdio.h>
-#include <stdlib.h>
 
 // Screen & Window control
 void tr_clear(void) {

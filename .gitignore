@@ -1,7 +1,7 @@
 .clangd
 
-run-hw.bat
-run-dino.bat
+build-hw.bat
+build-dino.bat
 
 CMakeLists.txt
 CMakePresets.json
