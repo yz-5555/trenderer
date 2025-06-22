@@ -5,19 +5,19 @@
 #include <stdint.h>
 
 // Screen
-// ================================================================
+// ============================================================================
 void tr_clear(void);
-// ================================================================
+// ============================================================================
 
 // Cursor
-// ================================================================
+// ============================================================================
 void tr_move_cursor(int x, int y); // Move cursor to given position.
 void tr_show_cursor(bool visible); // Toggle visibility of cursor.
-// ================================================================
+// ============================================================================
 
 // Effects
-// ================================================================
-void tr_reset_all(void); // Reset all effects, colors to default value.
+// ============================================================================
+void tr_reset_all(void); // Reset current effects, colors to default value.
 
 typedef enum TrEffect {
     TR_DEFAULT_EFFECT = 0,
@@ -30,13 +30,13 @@ typedef enum TrEffect {
     TR_HIDDEN = 1 << 6,
     TR_STRIKETHROUGH = 1 << 7,
 } TrEffect;
-void tr_add_effects(TrEffect effects);    // Add given effects to current buffer.
-void tr_remove_effects(TrEffect effects); // Remove given effects to current buffer.
-void tr_reset_effects(void);              // Reset all effects to default value.
-// ================================================================
+void tr_add_effects(TrEffect effects);    // Add effects to current buffer.
+void tr_remove_effects(TrEffect effects); // Remove effects from current buffer.
+void tr_reset_effects(void);              // Reset current effects to default value.
+// ============================================================================
 
 // Colors
-// ================================================================
+// ============================================================================
 typedef enum TrColorsMode {
     TR_COLORS_16,
     TR_COLORS_256,
@@ -48,26 +48,16 @@ void tr_reset_fg(void);                                  // Reset foreground col
 void tr_reset_bg(void);                                  // Reset background color to default value.
 
 // Colors - Helper functions
-// ----------------------------------------------------------------
-static inline uint32_t tr_gray_256(uint8_t scale) {
-    return (scale > 23) ? 232 : (232 + scale);
-}
-static inline uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b) {
-    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
-}
-static inline uint8_t tr_rgb_r(uint32_t rgb) {
-    return (rgb >> 16) & 0xFF;
-}
-static inline uint8_t tr_rgb_g(uint32_t rgb) {
-    return (rgb >> 8) & 0xFF;
-}
-static inline uint8_t tr_rgb_b(uint32_t rgb) {
-    return rgb & 0xFF;
-}
-// -----------------------------------------------------------------
+// ----------------------------------------------------------------------------
+uint32_t tr_gray_256(uint8_t scale);              // Create a gray scale value in ANSI 256 colors.
+uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b); // Create a rgb value.
+uint8_t tr_rgb_r(uint32_t rgb);                   // Get `r` of a rgb value.
+uint8_t tr_rgb_g(uint32_t rgb);                   // Get 'g' of a rgb value.
+uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
+// ----------------------------------------------------------------------------
 
 // Colors - ANSI 16 colors
-// -----------------------------------------------------------------
+// ----------------------------------------------------------------------------
 #define TR_BLACK_16 30
 #define TR_RED_16 31
 #define TR_GREEN_16 32
@@ -87,10 +77,10 @@ static inline uint8_t tr_rgb_b(uint32_t rgb) {
 #define TR_BRIGHT_WHITE_16 97
 
 #define TR_DEFAULT_COLOR_16 39
-// -----------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 // Colors - ANSI 256 colors
-// -----------------------------------------------------------------
+// ----------------------------------------------------------------------------
 #define TR_BLACK_256 0
 #define TR_RED_256 1
 #define TR_GREEN_256 2
@@ -108,10 +98,10 @@ static inline uint8_t tr_rgb_b(uint32_t rgb) {
 #define TR_BRIGHT_MAGENTA_256 13
 #define TR_BRIGHT_CYAN_256 14
 #define TR_BRIGHT_WHITE_256 15
-// -----------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 // Colors - True colors
-// -----------------------------------------------------------------
+// ----------------------------------------------------------------------------
 #define TR_BLACK tr_rgb(0, 0, 0)
 #define TR_RED tr_rgb(255, 0, 0)
 #define TR_GREEN tr_rgb(0, 255, 0)
@@ -125,11 +115,11 @@ static inline uint8_t tr_rgb_b(uint32_t rgb) {
 #define TR_ORANGE tr_rgb(255, 165, 0)
 #define TR_PINK tr_rgb(255, 105, 180)
 #define TR_SKYBLUE tr_rgb(135, 206, 235)
-// -----------------------------------------------------------------
-// =================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
 
 // Styles
-// =================================================================
+// ============================================================================
 typedef struct TrStyle {
     TrEffect effects;
     uint32_t fg_color;
@@ -140,68 +130,70 @@ typedef struct TrStyle {
 void tr_set_style(const TrStyle *style);               // Set style of current buffer.
 void tr_init_style(TrStyle *style);                    // Assign default values to `style`.
 void tr_copy_style(TrStyle *dest, const TrStyle *src); // Copy value of `src` into `dest`.
-// =================================================================
+// ============================================================================
 
 // Pixels
-// =================================================================
+// ============================================================================
 typedef struct TrPixel {
     char ch;
     TrStyle style;
 } TrPixel;
-// =================================================================
+// ============================================================================
 
 // Basic renderer
-// =================================================================
-void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y); // Draw given sprite at the given position on the screen.
-void tr_draw_text(const char *text, const TrStyle *style, int x, int y);         // Draw given string at the given position on the screen.
-// =================================================================
+// ============================================================================
+void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y); // Draw a sprite on the screen.
+void tr_draw_text(const char *text, const TrStyle *style, int x, int y);         // Draw a string on the screen.
+// ============================================================================
 
 // Frame buffers
-// =================================================================
+// ============================================================================
+#ifndef TR_FB_LENGTH
+#define TR_FB_LENGTH 512
+#endif
+
 typedef struct TrFrameBuffers {
-    TrPixel *front;
-    TrPixel *back;
+    TrPixel front[TR_FB_LENGTH];
+    TrPixel back[TR_FB_LENGTH];
     int width, height;
 } TrFrameBuffers;
 void tr_fb_init(TrFrameBuffers *fb, int width, int height);                                             // Initialize & assign default values to `fb`.
-void tr_fb_cleanup(TrFrameBuffers *fb);                                                                 // Cleanup & free the data of `fb`.
 void tr_fb_render(TrFrameBuffers *fb);                                                                  // Render the framebuffers.
-void tr_fb_draw_sprite(TrFrameBuffers *fb, const TrPixel *sprite, int width, int height, int x, int y); // Add given sprite into the framebuffers.
-void tr_fb_draw_text(TrFrameBuffers *fb, const char *text, const TrStyle *style, int x, int y);         // Add given string into the framebuffers.
-// =================================================================
+void tr_fb_draw_sprite(TrFrameBuffers *fb, const TrPixel *sprite, int width, int height, int x, int y); // Draw a sprite on the framebuffers.
+void tr_fb_draw_text(TrFrameBuffers *fb, const char *text, const TrStyle *style, int x, int y);         // Draw a string on the framebuffers.
+// ============================================================================
 
 // Helper functions
-// =================================================================
-void tr_print_effects(TrEffect effects);                       // Print the names of given effects.
-void tr_print_color(uint32_t color, TrColorsMode colors_mode); // Print the name of given color.
-// =================================================================
+// ============================================================================
+void tr_print_effects(TrEffect effects);                       // Print the names of effects.
+void tr_print_color(uint32_t color, TrColorsMode colors_mode); // Print the name of a color.
+// ============================================================================
 
 #endif // TRENDERER_H
 
 #ifdef TRENDERER_IMPLEMENTATION
 
 #include <stdio.h>
-#include <stdlib.h>
 
 // Screen & Window control
-// =================================================================
+// ============================================================================
 void tr_clear(void) {
     fputs("\x1b[2J\x1b[H", stdout);
 }
-// =================================================================
+// ============================================================================
 
 // Cursor control
-// =================================================================
+// ============================================================================
 void tr_move_cursor(int x, int y) {
     printf("\x1b[%d;%dH", y + 1, x + 1);
 }
 void tr_show_cursor(bool visible) {
     fputs(visible ? "\x1b[?25h" : "\x1b[?25l", stdout);
 }
-// =================================================================
+// ============================================================================
 
 // Effects
-// =================================================================
+// ============================================================================
 void tr_reset_all(void) {
     fputs("\x1b[0m", stdout);
 }
@@ -256,10 +248,10 @@ void tr_remove_effects(TrEffect effects) {
 void tr_reset_effects(void) {
     fputs("\x1b[22;23;24;25;27;28;29m", stdout);
 }
-// =================================================================
+// ============================================================================
 
 // Colors
-// =================================================================
+// ============================================================================
 void tr_set_fg(uint32_t fg_color, TrColorsMode fg_mode) {
     switch (fg_mode) {
     case TR_COLORS_16:
@@ -292,10 +284,29 @@ void tr_reset_fg(void) {
 void tr_reset_bg(void) {
     fputs("\x1b[49m", stdout);
 }
-// =================================================================
+
+// Colors - Helper functions
+// ----------------------------------------------------------------------------
+uint32_t tr_gray_256(uint8_t scale) {
+    return (scale > 23) ? 232 : (232 + scale);
+}
+uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b) {
+    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+}
+inline uint8_t tr_rgb_r(uint32_t rgb) {
+    return (rgb >> 16) & 0xFF;
+}
+uint8_t tr_rgb_g(uint32_t rgb) {
+    return (rgb >> 8) & 0xFF;
+}
+uint8_t tr_rgb_b(uint32_t rgb) {
+    return rgb & 0xFF;
+}
+// ----------------------------------------------------------------------------
+// ============================================================================
 
 // Styles
-// =================================================================
+// ============================================================================
 void tr_set_style(const TrStyle *style) {
     tr_add_effects(style->effects);
     tr_set_fg(style->fg_color, style->fg_mode);
@@ -315,10 +326,10 @@ void tr_copy_style(TrStyle *dest, const TrStyle *src) {
     dest->bg_color = src->bg_color;
     dest->bg_mode = src->bg_mode;
 }
-// =================================================================
+// ============================================================================
 
 // Basic renderer
-// =================================================================
+// ============================================================================
 void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y) {
     TrStyle style = {
         .effects = TR_DEFAULT_EFFECT,
@@ -364,13 +375,11 @@ void tr_draw_text(const char *text, const TrStyle *style, int x, int y) {
     tr_set_style(style);
     fputs(text, stdout);
 }
-// =================================================================
+// ============================================================================
 
 // Frame buffers
-// =================================================================
+// ============================================================================
 void tr_fb_init(TrFrameBuffers *fb, int width, int height) {
-    fb->front = (TrPixel *)malloc(width * height * sizeof(TrPixel));
-    fb->back = (TrPixel *)malloc(width * height * sizeof(TrPixel));
     fb->width = width;
     fb->height = height;
 
@@ -380,16 +389,6 @@ void tr_fb_init(TrFrameBuffers *fb, int width, int height) {
 
         fb->back[i].ch = ' ';
         tr_init_style(&(fb->back[i].style));
-    }
-}
-void tr_fb_cleanup(TrFrameBuffers *fb) {
-    if (fb->front != NULL) {
-        free(fb->front);
-        fb->front = NULL;
-    }
-    if (fb->back != NULL) {
-        free(fb->back);
-        fb->back = NULL;
     }
 }
 void tr_fb_render(TrFrameBuffers *fb) {
@@ -408,10 +407,10 @@ void tr_fb_draw_sprite(TrFrameBuffers *fb, const TrPixel *sprite, int width, int
 void tr_fb_draw_text(TrFrameBuffers *fb, const char *text, const TrStyle *style, int x, int y) {
     // TODO: uhhh...uhh,....uhh...umm...need validation.
 }
-// =================================================================
+// ============================================================================
 
 // Helper functions
-// =================================================================
+// ============================================================================
 void tr_print_effects(TrEffect effects) {
     if (effects == TR_DEFAULT_EFFECT) {
         fputs("DEFAULT_EFFECT", stdout);
@@ -443,5 +442,5 @@ void tr_print_effects(TrEffect effects) {
 }
 void tr_print_color(uint32_t color, TrColorsMode colors_mode) {
 }
-// =================================================================
+// ============================================================================
 #endif // TRENDERER_IMPLEMENTATION
