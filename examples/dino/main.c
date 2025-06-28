@@ -20,7 +20,7 @@ int main(void) {
     TrPixel bird_sprite[BIRD_WIDTH * BIRD_HEIGHT];
     init_bird_sprite(bird_sprite);
 
-    tr_show_cursor(false);
+    tr_cursor_visible(false);
 
     while (dino.is_alive) {
         tr_clear();

@@ -1,7 +1,7 @@
 #ifndef DINO_H
 #define DINO_H
 
-#include "../../trenderer.h"
+#include "trenderer.h"
 
 // Utils
 typedef struct Vec2 {

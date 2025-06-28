@@ -11,8 +11,8 @@ void tr_clear(void);
 
 // Cursor
 // ============================================================================
-void tr_move_cursor(int x, int y); // Move cursor to given position.
-void tr_show_cursor(bool visible); // Toggle visibility of cursor.
+void tr_move_cursor(int x, int y);    // Move cursor to given position.
+void tr_cursor_visible(bool visible); // Toggle visibility of cursor.
 // ============================================================================
 
 // Effects
@@ -157,7 +157,7 @@ typedef struct TrFrameBuffers {
     TrPixel back[TR_FB_LENGTH];
     int width, height;
 } TrFrameBuffers;
-void tr_fb_init(TrFrameBuffers *fb, int width, int height);                                             // Initialize & assign default values to `fb`.
+void tr_fb_init(TrFrameBuffers *fb, int width, int height);                                             // Initialize the framebuffers.
 void tr_fb_render(TrFrameBuffers *fb);                                                                  // Render the framebuffers.
 void tr_fb_draw_sprite(TrFrameBuffers *fb, const TrPixel *sprite, int width, int height, int x, int y); // Draw a sprite on the framebuffers.
 void tr_fb_draw_text(TrFrameBuffers *fb, const char *text, const TrStyle *style, int x, int y);         // Draw a string on the framebuffers.
@@ -171,9 +171,12 @@ void tr_print_color(uint32_t color, TrColorsMode colors_mode); // Print the name
 
 #endif // TRENDERER_H
 
+#define TRENDERER_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
+
 #ifdef TRENDERER_IMPLEMENTATION
 
 #include <stdio.h>
+#include <string.h>
 
 // Screen & Window control
 // ============================================================================
@@ -187,7 +190,7 @@ void tr_clear(void) {
 void tr_move_cursor(int x, int y) {
     printf("\x1b[%d;%dH", y + 1, x + 1);
 }
-void tr_show_cursor(bool visible) {
+void tr_cursor_visible(bool visible) {
     fputs(visible ? "\x1b[?25h" : "\x1b[?25l", stdout);
 }
 // ============================================================================
@@ -293,7 +296,7 @@ uint32_t tr_gray_256(uint8_t scale) {
 uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b) {
     return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 }
-inline uint8_t tr_rgb_r(uint32_t rgb) {
+uint8_t tr_rgb_r(uint32_t rgb) {
     return (rgb >> 16) & 0xFF;
 }
 uint8_t tr_rgb_g(uint32_t rgb) {
@@ -380,6 +383,11 @@ void tr_draw_text(const char *text, const TrStyle *style, int x, int y) {
 // Frame buffers
 // ============================================================================
 void tr_fb_init(TrFrameBuffers *fb, int width, int height) {
+    if (width * height > TR_FB_LENGTH) {
+        fb->width = 0;
+        fb->height = 0;
+        return;
+    }
     fb->width = width;
     fb->height = height;
 
@@ -394,14 +402,48 @@ void tr_fb_init(TrFrameBuffers *fb, int width, int height) {
 void tr_fb_render(TrFrameBuffers *fb) {
 }
 void tr_fb_draw_sprite(TrFrameBuffers *fb, const TrPixel *sprite, int width, int height, int x, int y) {
-    if ((x < 0 || x > fb->width - 1) || (y < 0 || y > fb->height - 1))
+    size_t real_width = 0;
+    int sprite_x_idx = 0;
+    if (x >= 0) {
+        if (width + x < fb->width)
+            real_width = width;
+        else
+            real_width = fb->width - x;
+    } else {
+        if (width + x > 0) {
+            real_width = width + x;
+            sprite_x_idx = -x;
+        }
+    }
+    if (real_width == 0)
         return;
-    // need tighter validation.
 
-    int t = x + y * fb->width;
-    for (int i = 0; i < width * height; i += 1) {
-        fb->back[i + t].ch = sprite[i].ch;
-        tr_copy_style(&(fb->back[i + t].style), &sprite[i].style);
+    size_t real_height = 0;
+    int sprite_y_idx = 0;
+    if (y >= 0) {
+        if (height + y < fb->height)
+            real_height = height;
+        else
+            real_height = fb->height - y;
+    } else {
+        if (height + y > 0) {
+            real_height = height + y;
+            sprite_y_idx = -sprite_y_idx;
+        }
+    }
+    if (real_height == 0)
+        return;
+
+    int fb_x_idx = x > 0 ? x : 0;
+    int fb_y_idx = y > 0 ? y : 0;
+
+    int fb_t = fb->width * fb_y_idx + fb_x_idx;
+    int sprite_t = width * sprite_y_idx + sprite_x_idx;
+
+    for (int i = 0; i < real_height; i += 1) {
+        memcpy(fb->back + fb_t, sprite + sprite_t, sizeof(TrPixel) * real_width);
+        fb_t += fb->width;
+        sprite_t += width;
     }
 }
 void tr_fb_draw_text(TrFrameBuffers *fb, const char *text, const TrStyle *style, int x, int y) {
