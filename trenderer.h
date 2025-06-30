@@ -169,6 +169,10 @@ void tr_print_effects(TrEffect effects);                       // Print the name
 void tr_print_color(uint32_t color, TrColorsMode colors_mode); // Print the name of a color.
 // ============================================================================
 
+// Helper functions (private)
+// ============================================================================
+void tr_priv_get_visible(TrFrameBuffers *fb, int size, int pos, size_t *result_size, int *result_idx);
+// ============================================================================
 #endif // TRENDERER_H
 
 #define TRENDERER_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
@@ -188,6 +192,8 @@ void tr_clear(void) {
 // Cursor control
 // ============================================================================
 void tr_move_cursor(int x, int y) {
+    if (x < 0 || y < 0)
+        return;
     printf("\x1b[%d;%dH", y + 1, x + 1);
 }
 void tr_cursor_visible(bool visible) {
@@ -334,6 +340,9 @@ void tr_copy_style(TrStyle *dest, const TrStyle *src) {
 // Basic renderer
 // ============================================================================
 void tr_draw_sprite(const TrPixel *sprite, int width, int height, int x, int y) {
+    if (width <= 0 || height <= 0)
+        return;
+
     TrStyle style = {
         .effects = TR_DEFAULT_EFFECT,
         .fg_color = TR_DEFAULT_COLOR_16,
@@ -383,7 +392,7 @@ void tr_draw_text(const char *text, const TrStyle *style, int x, int y) {
 // Frame buffers
 // ============================================================================
 void tr_fb_init(TrFrameBuffers *fb, int width, int height) {
-    if (width * height > TR_FB_LENGTH) {
+    if (width <= 0 || height <= 0 || width * height > TR_FB_LENGTH) {
         fb->width = 0;
         fb->height = 0;
         return;
@@ -402,48 +411,28 @@ void tr_fb_init(TrFrameBuffers *fb, int width, int height) {
 void tr_fb_render(TrFrameBuffers *fb) {
 }
 void tr_fb_draw_sprite(TrFrameBuffers *fb, const TrPixel *sprite, int width, int height, int x, int y) {
-    size_t real_width = 0;
+    if (width <= 0 || height <= 0)
+        return;
+
+    size_t visible_width = 0;
     int sprite_x_idx = 0;
-    if (x >= 0) {
-        if (width + x < fb->width)
-            real_width = width;
-        else
-            real_width = fb->width - x;
-    } else {
-        if (width + x > 0) {
-            real_width = width + x;
-            sprite_x_idx = -x;
-        }
-    }
-    if (real_width == 0)
+    tr_priv_get_visible(fb, width, x, &visible_width, &sprite_x_idx);
+    if (visible_width <= 0)
         return;
 
-    size_t real_height = 0;
+    size_t visible_height = 0;
     int sprite_y_idx = 0;
-    if (y >= 0) {
-        if (height + y < fb->height)
-            real_height = height;
-        else
-            real_height = fb->height - y;
-    } else {
-        if (height + y > 0) {
-            real_height = height + y;
-            sprite_y_idx = -sprite_y_idx;
-        }
-    }
-    if (real_height == 0)
+    tr_priv_get_visible(fb, height, y, &visible_height, &sprite_y_idx);
+    if (visible_height == 0)
         return;
 
-    int fb_x_idx = x > 0 ? x : 0;
-    int fb_y_idx = y > 0 ? y : 0;
+    int fb_idx = fb->width * (y > 0 ? y : 0) + (x > 0 ? x : 0);
+    int sprite_idx = width * sprite_y_idx + sprite_x_idx;
 
-    int fb_t = fb->width * fb_y_idx + fb_x_idx;
-    int sprite_t = width * sprite_y_idx + sprite_x_idx;
-
-    for (int i = 0; i < real_height; i += 1) {
-        memcpy(fb->back + fb_t, sprite + sprite_t, sizeof(TrPixel) * real_width);
-        fb_t += fb->width;
-        sprite_t += width;
+    for (int i = 0; i < visible_height; i += 1) {
+        memcpy(fb->back + fb_idx, sprite + sprite_idx, sizeof(TrPixel) * visible_width);
+        fb_idx += fb->width;
+        sprite_idx += width;
     }
 }
 void tr_fb_draw_text(TrFrameBuffers *fb, const char *text, const TrStyle *style, int x, int y) {
@@ -485,4 +474,22 @@ void tr_print_effects(TrEffect effects) {
 void tr_print_color(uint32_t color, TrColorsMode colors_mode) {
 }
 // ============================================================================
+
+// Helper functions (private)
+// ============================================================================
+void tr_priv_get_visible(TrFrameBuffers *fb, int size, int pos, size_t *result_size, int *result_idx) {
+    if (pos >= 0) {
+        if (size + pos < fb->width)
+            *result_size = size;
+        else
+            *result_size = fb->width - pos;
+    } else {
+        if (size + pos > 0) {
+            *result_size = size + pos;
+            *result_idx = -pos;
+        }
+    }
+}
+// ============================================================================
+
 #endif // TRENDERER_IMPLEMENTATION
