@@ -395,7 +395,7 @@ void tr_pa_init(TrPixelArray *pa, int width, int height) {
     memset(pa->bg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
 }
 void tr_pv_init(TrPixelVector *pv, int width, int height) {
-    if (width <= 0 || height <= 0 || width * height > TR_PA_LENGTH) {
+    if (width <= 0 || height <= 0) {
         pv->width = 0;
         pv->height = 0;
         return;
@@ -492,6 +492,7 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
         .bg_mode = TR_COLORS_16,
     };
 
+    int idx = 0;
     for (int iy = 0; iy < sprite.height; iy += 1) {
         tr_move_cursor(x, y + iy);
         size_t len = 1;
@@ -522,7 +523,8 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
             }
 
             if (changed) {
-                fwrite(sprite.letter, sizeof(char), len, stdout);
+                fwrite(sprite.letter + idx, sizeof(char), len, stdout);
+                idx += len;
                 len = 1;
             } else
                 len += 1;
