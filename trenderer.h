@@ -27,7 +27,7 @@ typedef enum TrEffect {
     TR_UNDERLINE = 1 << 3,
     TR_BLINK = 1 << 4,
     TR_INVERT = 1 << 5,
-    TR_HIDDEN = 1 << 6,
+    TR_INVISIBLE = 1 << 6,
     TR_STRIKETHROUGH = 1 << 7,
 } TrEffect;
 void tr_add_effects(TrEffect effects);    // Add effects to current buffer.
@@ -139,7 +139,7 @@ typedef struct TrPixel {
     uint32_t fg_color, bg_color;
     TrColorsMode fg_mode, bg_mode;
 } TrPixel;
-
+// Add bitset for checking if it's transparent or not.
 typedef struct TrPixelSpan {
     char *letter;
     TrEffect *effects;
@@ -263,7 +263,7 @@ void tr_add_effects(TrEffect effects) {
     if (effects & TR_INVERT)
         fputs("\x1b[7m", stdout);
 
-    if (effects & TR_HIDDEN)
+    if (effects & TR_INVISIBLE)
         fputs("\x1b[8m", stdout);
 
     if (effects & TR_STRIKETHROUGH)
@@ -285,7 +285,7 @@ void tr_remove_effects(TrEffect effects) {
     if (effects & TR_INVERT)
         fputs("\x1b[27m", stdout);
 
-    if (effects & TR_HIDDEN)
+    if (effects & TR_INVISIBLE)
         fputs("\x1b[28m", stdout);
 
     if (effects & TR_STRIKETHROUGH)
@@ -299,6 +299,8 @@ void tr_reset_effects(void) {
 // Colors
 // ============================================================================
 void tr_set_fg(uint32_t fg_color, TrColorsMode fg_mode) {
+    if (fg_color == TR_TRANSPARENT)
+        return;
     switch (fg_mode) {
     case TR_COLORS_16:
         printf("\x1b[%dm", fg_color);
@@ -312,6 +314,8 @@ void tr_set_fg(uint32_t fg_color, TrColorsMode fg_mode) {
     }
 }
 void tr_set_bg(uint32_t bg_color, TrColorsMode bg_mode) {
+    if (bg_color == TR_TRANSPARENT)
+        return;
     switch (bg_mode) {
     case TR_COLORS_16:
         printf("\x1b[%dm", 10 + bg_color);
@@ -593,14 +597,15 @@ void tr_fb_draw_sprite(TrFrameBuffers *fb, TrPixelSpan sprite, int x, int y) {
     for (int i = 0; i < visible_height; i += 1) {
         memcpy(fb->back.letter + fb_idx, sprite.letter + sprite_idx, visible_width * sizeof(char));
         memcpy(fb->back.effects + fb_idx, sprite.effects + sprite_idx, visible_width * sizeof(TrEffect));
-        memcpy(fb->back.fg_color + fb_idx, sprite.fg_color + sprite_idx, visible_width * sizeof(uint32_t));
-        memcpy(fb->back.fg_mode + fb_idx, sprite.fg_mode + sprite_idx, visible_width * sizeof(TrColorsMode));
+        memcpy(fb->back.fg_mode + fb_idx, sprite.fg_color + sprite_idx, visible_width * sizeof(TrColorsMode));
+        memcpy(fb->back.bg_mode + fb_idx, sprite.fg_mode + sprite_idx, visible_width * sizeof(TrColorsMode));
 
+        // Better optimization is expected.
         for (int j = sprite_idx; j < visible_width + sprite_idx; j += 1) {
-            if (sprite.bg_color[j] == TR_TRANSPARENT)
-                continue;
-            fb->back.bg_color[j] = sprite.bg_color[j];
-            fb->back.bg_mode[j] = sprite.bg_mode[j];
+            if (sprite.fg_color[j] != TR_TRANSPARENT)
+                fb->back.fg_color[j] = sprite.fg_color[j];
+            if (sprite.bg_color[j] != TR_TRANSPARENT)
+                fb->back.bg_color[j] = sprite.bg_color[j];
         }
 
         fb_idx += fb->width;
@@ -637,7 +642,7 @@ void tr_print_effects(TrEffect effects) {
     if (effects & TR_INVERT)
         fputs("INVERT ", stdout);
 
-    if (effects & TR_HIDDEN)
+    if (effects & TR_INVISIBLE)
         fputs("HIDDEN ", stdout);
 
     if (effects & TR_STRIKETHROUGH)
