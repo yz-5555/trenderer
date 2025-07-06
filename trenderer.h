@@ -56,7 +56,7 @@ uint8_t tr_rgb_g(uint32_t rgb);                   // Get 'g' of a rgb value.
 uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
 // ----------------------------------------------------------------------------
 
-// Colors - ANSI 16 colors
+// Colors - Constants - ANSI 16 colors
 // ----------------------------------------------------------------------------
 #define TR_BLACK_16 30
 #define TR_RED_16 31
@@ -79,7 +79,7 @@ uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
 #define TR_DEFAULT_COLOR_16 39
 // ----------------------------------------------------------------------------
 
-// Colors - ANSI 256 colors
+// Colors - Constants - ANSI 256 colors
 // ----------------------------------------------------------------------------
 #define TR_BLACK_256 0
 #define TR_RED_256 1
@@ -100,7 +100,7 @@ uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
 #define TR_BRIGHT_WHITE_256 15
 // ----------------------------------------------------------------------------
 
-// Colors - True colors
+// Colors - Constants - True colors
 // ----------------------------------------------------------------------------
 #define TR_BLACK tr_rgb(0, 0, 0)
 #define TR_RED tr_rgb(255, 0, 0)
@@ -116,6 +116,7 @@ uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
 #define TR_PINK tr_rgb(255, 105, 180)
 #define TR_SKYBLUE tr_rgb(135, 206, 235)
 // ----------------------------------------------------------------------------
+#define TR_TRANSPARENT 0xFFFFFFFF
 // ============================================================================
 
 // Styles
@@ -594,6 +595,13 @@ void tr_fb_draw_sprite(TrFrameBuffers *fb, TrPixelSpan sprite, int x, int y) {
         memcpy(fb->back.effects + fb_idx, sprite.effects + sprite_idx, visible_width * sizeof(TrEffect));
         memcpy(fb->back.fg_color + fb_idx, sprite.fg_color + sprite_idx, visible_width * sizeof(uint32_t));
         memcpy(fb->back.fg_mode + fb_idx, sprite.fg_mode + sprite_idx, visible_width * sizeof(TrColorsMode));
+
+        for (int j = sprite_idx; j < visible_width + sprite_idx; j += 1) {
+            if (sprite.bg_color[j] == TR_TRANSPARENT)
+                continue;
+            fb->back.bg_color[j] = sprite.bg_color[j];
+            fb->back.bg_mode[j] = sprite.bg_mode[j];
+        }
 
         fb_idx += fb->width;
         sprite_idx += sprite.width;
