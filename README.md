@@ -17,7 +17,9 @@ Another ANSI library for awesome text rendering in your terminal.
 Just add `trenderer.h` to your project and it's good to go.
 
 Do this:
-    `#define TRENDERER_IMPLMENTATION`
+    ```c
+    #define TRENDERER_IMPLMENTATION
+    ```
 before you include `trenderer.h` in *one* C or C++ file to create the implmentation.
 
 ## Notes
