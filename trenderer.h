@@ -139,7 +139,7 @@ typedef struct TrPixel {
     uint32_t fg_color, bg_color;
     TrColorsMode fg_mode, bg_mode;
 } TrPixel;
-// Add bitset for checking if it's transparent or not.
+
 typedef struct TrPixelSpan {
     char *letter;
     TrEffect *effects;
@@ -206,7 +206,7 @@ const char *tr_text_format(const char *format, ...);
 
 // Helper functions (private)
 // ============================================================================
-void tr_priv_get_visible(size_t *result_size, int *result_idx, int fb_size, int size, int pos);
+void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos);
 // ============================================================================
 
 #endif // TRENDERER_H
@@ -498,12 +498,12 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
     };
 
     int idx = 0;
-    for (int iy = 0; iy < sprite.height; iy += 1) {
-        tr_move_cursor(x, y + iy);
+    for (int r = 0; r < sprite.height; r += 1) {
+        tr_move_cursor(x, y + r);
         size_t len = 1;
 
-        for (int ix = 0; ix < sprite.width; ix += 1) {
-            int i = ix + iy * sprite.width;
+        for (int c = 0; c < sprite.width; c += 1) {
+            int i = c + r * sprite.width;
             bool changed = false;
 
             if (curr.effects != sprite.effects[i]) {
@@ -527,7 +527,7 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
                 changed = true;
             }
 
-            if (changed) {
+            if (changed || (c == sprite.width - 1)) {
                 fwrite(sprite.letter + idx, sizeof(char), len, stdout);
                 idx += len;
                 len = 1;
@@ -579,33 +579,40 @@ void tr_fb_draw_sprite(TrFrameBuffers *fb, TrPixelSpan sprite, int x, int y) {
     if (sprite.width <= 0 || sprite.height <= 0)
         return;
 
-    size_t visible_width = 0;
+    int visible_width = 0;
     int sprite_x_idx = 0;
     tr_priv_get_visible(&visible_width, &sprite_x_idx, fb->width, sprite.width, x);
     if (visible_width <= 0)
         return;
 
-    size_t visible_height = 0;
+    int visible_height = 0;
     int sprite_y_idx = 0;
     tr_priv_get_visible(&visible_height, &sprite_y_idx, fb->height, sprite.height, y);
     if (visible_height <= 0)
         return;
 
-    int fb_idx = fb->width * (y > 0 ? y : 0) + (x > 0 ? x : 0);
-    int sprite_idx = sprite.width * sprite_y_idx + sprite_x_idx;
+    int fb_idx = (x > 0 ? x : 0) + (y > 0 ? y : 0) * fb->width;
+    int sprite_idx = sprite_x_idx + sprite_y_idx * sprite.width;
 
-    for (int i = 0; i < visible_height; i += 1) {
+    for (int r = 0; r < visible_height; r += 1) {
         memcpy(fb->back.letter + fb_idx, sprite.letter + sprite_idx, visible_width * sizeof(char));
         memcpy(fb->back.effects + fb_idx, sprite.effects + sprite_idx, visible_width * sizeof(TrEffect));
-        memcpy(fb->back.fg_mode + fb_idx, sprite.fg_color + sprite_idx, visible_width * sizeof(TrColorsMode));
-        memcpy(fb->back.bg_mode + fb_idx, sprite.fg_mode + sprite_idx, visible_width * sizeof(TrColorsMode));
 
-        // Better optimization is expected.
-        for (int j = sprite_idx; j < visible_width + sprite_idx; j += 1) {
-            if (sprite.fg_color[j] != TR_TRANSPARENT)
-                fb->back.fg_color[j] = sprite.fg_color[j];
-            if (sprite.bg_color[j] != TR_TRANSPARENT)
-                fb->back.bg_color[j] = sprite.bg_color[j];
+        for (int c = 0; c < visible_width; c += 1) {
+            if (sprite.fg_color[c] != TR_TRANSPARENT) {
+                int fi = c + fb_idx;
+                int si = c + sprite_idx;
+
+                fb->back.fg_color[fi] = sprite.fg_color[si];
+                fb->back.fg_mode[fi] = sprite.fg_color[si];
+            }
+            if (sprite.bg_color[c] != TR_TRANSPARENT) {
+                int fi = c + fb_idx;
+                int si = c + sprite_idx;
+
+                fb->back.bg_color[fi] = sprite.bg_color[si];
+                fb->back.bg_mode[fi] = sprite.bg_mode[si];
+            }
         }
 
         fb_idx += fb->width;
@@ -613,7 +620,6 @@ void tr_fb_draw_sprite(TrFrameBuffers *fb, TrPixelSpan sprite, int x, int y) {
     }
 }
 void tr_fb_draw_text(TrFrameBuffers *fb, const char *text, const TrStyle *style, int x, int y) {
-    // TODO: uhhh...uhh,....uhh...umm...need validation.
 }
 // ============================================================================
 
@@ -654,12 +660,15 @@ void tr_print_color(uint32_t color, TrColorsMode colors_mode) {
 
 // Helper functions (private)
 // ============================================================================
-void tr_priv_get_visible(size_t *result_size, int *result_idx, int fb_size, int size, int pos) {
+void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos) {
     if (pos >= 0) {
-        if (size + pos < fb_size)
+        if (size + pos < fb_size) {
             *result_size = size;
-        else
+            *result_idx = 0;
+        } else {
             *result_size = fb_size - pos;
+            *result_idx = 0;
+        }
     } else {
         if (size + pos > 0) {
             *result_size = size + pos;
