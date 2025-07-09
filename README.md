@@ -18,7 +18,7 @@ Just add `trenderer.h` to your project and it's good to go.
 
 Do this:
 ```c
-    #define TRENDERER_IMPLMENTATION
+#define TRENDERER_IMPLMENTATION
 ```
 before you include `trenderer.h` in *one* C or C++ file to create the implmentation.
 
