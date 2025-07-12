@@ -4,9 +4,35 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/******************************************************************************
+ *
+ * trenderer v0.1.0
+ *     NOTES:
+ *         It's a header-only, single file library. Which means, declaration and definition of functions are both inside this file.
+ *         They are completely separated with TRENDERER_IMPLEMENTATION. There are no inline functions for coherent structure.
+ *
+ *     NAMESPACES AND CONVENTIONS:
+ *         Everything is under `tr` namespace. Macros and enum members are ALL_CAPS, structs and enums are PascalCase, and anything else is snake_case.
+ *         `tr_priv_XXX` means it's private, those are used inside the library logic.
+ *         `tr_pa_XXX`(TrPixelArray), `tr_pv_XXX`(TrPixelVector), `tr_ctx_XXX`(TrRenderContext) mean they are OOP functions.
+ *
+ *     DEFINES:
+ *         #define TRENDERER_IMPLEMENTATION
+ *             Create the implmentation of the library. MUST BE DEFINED IN ONE SOURCE FILE BEFORE INCLUDING THE HEADER.
+ *
+ *         #define TR_PA_LENGTH 64
+ *             It's the length of `TrPixelArray`. The default value is 64 and you can define other value before you include the header.
+ *
+ *         #define TR_FB_LENGTH 512
+ *             It's the length of `TrFrameBufferBase`. The default value is 512 and you can define other value before you include the header.
+ *
+ *         There are no macro functions.
+ *
+ *****************************************************************************/
+
 // Screen
 // ============================================================================
-void tr_clear(void);
+void tr_clear(void); // Clear the screen.
 // ============================================================================
 
 // Cursor
@@ -116,7 +142,8 @@ uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
 #define TR_PINK tr_rgb(255, 105, 180)
 #define TR_SKYBLUE tr_rgb(135, 206, 235)
 // ----------------------------------------------------------------------------
-#define TR_TRANSPARENT 0xFFFFFFFF
+
+#define TR_TRANSPARENT 0xFFFFFFFF // This is not a drawable value. It's meant to be used in software rendering.
 // ============================================================================
 
 // Styles
@@ -140,18 +167,11 @@ typedef struct TrPixel {
     TrColorsMode fg_mode, bg_mode;
 } TrPixel;
 
-typedef struct TrPixelSpan {
-    char *letter;
-    TrEffect *effects;
-    uint32_t *fg_color, *bg_color;
-    TrColorsMode *fg_mode, *bg_mode;
-    int width, height;
-} TrPixelSpan;
-
 #ifndef TR_PA_LENGTH
 #define TR_PA_LENGTH 64
 #endif
 
+// An array that holds `TrPixel` in amount of `TR_PA_LENGTH` in SoA style.
 typedef struct TrPixelArray {
     char letter[TR_PA_LENGTH];
     TrEffect effects[TR_PA_LENGTH];
@@ -161,9 +181,19 @@ typedef struct TrPixelArray {
 } TrPixelArray;
 void tr_pa_init(TrPixelArray *pa, int width, int height);
 
-typedef TrPixelSpan TrPixelVector;
+// A vector that holds `TrPixel` in SoA style.
+typedef struct TrPixelVector {
+    char *letter;
+    TrEffect *effects;
+    uint32_t *fg_color, *bg_color;
+    TrColorsMode *fg_mode, *bg_mode;
+    int width, height;
+} TrPixelVector;
 void tr_pv_init(TrPixelVector *pv, int width, int height);
 void tr_pv_cleanup(TrPixelVector *pv);
+
+// A view for TrPixel containers. Similar to std::span in C++.
+typedef TrPixelVector TrPixelSpan;
 // ============================================================================
 
 // Basic renderer
@@ -178,6 +208,7 @@ void tr_draw_text(const char *text, const TrStyle *style, int x, int y); // Draw
 #define TR_FB_LENGTH 512
 #endif
 
+// Data set for a framebuffer. It's not meant to be used in practice.
 typedef struct TrFrameBufferBase {
     char letter[TR_FB_LENGTH];
     TrEffect effects[TR_FB_LENGTH];
@@ -190,14 +221,15 @@ typedef struct TrFrameBuffer {
     int width, height;
 } TrFrameBuffer;
 
+// Render context for double-buffering. It holds two framebuffers.
 typedef struct TrRenderContext {
     TrFrameBufferBase front, back;
     int width, height;
 } TrRenderContext;
-void tr_rc_init(TrRenderContext *ctx, int width, int height);                                     // Initialize the framebuffers.
-void tr_rc_render(TrRenderContext *ctx);                                                          // Render the framebuffers.
-void tr_rc_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y);                   // Draw a sprite on the framebuffers.
-void tr_rc_draw_text(TrRenderContext *ctx, const char *text, const TrStyle *style, int x, int y); // Draw a string on the framebuffers.
+void tr_ctx_init(TrRenderContext *ctx, int width, int height);                                     // Initialize the context.
+void tr_ctx_render(TrRenderContext *ctx);                                                          // Render `front` using dirty rectangles and swap buffers.
+void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y);                   // Draw a sprite on `back`.
+void tr_ctx_draw_text(TrRenderContext *ctx, const char *text, const TrStyle *style, int x, int y); // Draw a string on `back`.
 // ============================================================================
 
 // Utility functions
@@ -210,7 +242,8 @@ void tr_print_color(uint32_t color, TrColorsMode colors_mode); // Print the name
 
 // Type conversion
 // ----------------------------------------------------------------------------
-TrPixelSpan tr_atos(const TrPixelArray *pa); // Stand for `tr_array_to_span`. Convert `TrPixelArray` to `TrPixelSpan`.
+TrPixelSpan tr_atos(const TrPixelArray *pa);                             // Stand for `tr_array_to_span`. Convert `TrPixelArray` to `TrPixelSpan`.
+TrPixelSpan tr_ftos(const TrFrameBufferBase *fb, int width, int height); // Stand for `tr_framebuffer_to_span`. Convert `TrFrameBuffer` to `TrPixelSpan`.
 // ----------------------------------------------------------------------------
 
 const char *tr_text_format(const char *format, ...);
@@ -219,7 +252,8 @@ const char *tr_text_format(const char *format, ...);
 // Helper functions (private)
 // ============================================================================
 void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos);
-void tr_priv_draw_sprite(char *letter, TrEffect *effects, uint32_t *fg_color, uint32_t *bg_color, TrColorsMode *fg_mode, TrColorsMode *bg_mode, int width, int height, int x, int y);
+void tr_priv_init_buf(TrPixelSpan buf);
+void tr_priv_swap_buf(TrRenderContext *ctx);
 // ============================================================================
 
 #endif // TRENDERER_H
@@ -403,14 +437,7 @@ void tr_pa_init(TrPixelArray *pa, int width, int height) {
     pa->width = width;
     pa->height = height;
 
-    size_t l = width * height;
-
-    memset(pa->letter, ' ', l * sizeof(char));
-    memset(pa->effects, TR_DEFAULT_EFFECT, l * sizeof(TrEffect));
-    memset(pa->fg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
-    memset(pa->bg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
-    memset(pa->fg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
-    memset(pa->bg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
+    tr_priv_init_buf(tr_atos(pa));
 }
 void tr_pv_init(TrPixelVector *pv, int width, int height) {
     if (width <= 0 || height <= 0) {
@@ -426,32 +453,28 @@ void tr_pv_init(TrPixelVector *pv, int width, int height) {
     pv->letter = (char *)malloc(l * sizeof(char));
     if (pv->letter == NULL)
         return;
-    memset(pv->letter, ' ', l * sizeof(char));
 
     pv->effects = (TrEffect *)malloc(l * sizeof(TrEffect));
     if (pv->effects == NULL)
         return;
-    memset(pv->effects, TR_DEFAULT_EFFECT, l * sizeof(TrEffect));
 
     pv->fg_color = (uint32_t *)malloc(l * sizeof(uint32_t));
     if (pv->fg_color == NULL)
         return;
-    memset(pv->fg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
 
     pv->bg_color = (uint32_t *)malloc(l * sizeof(uint32_t));
     if (pv->bg_color == NULL)
         return;
-    memset(pv->bg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
 
     pv->fg_mode = (TrColorsMode *)malloc(l * sizeof(TrColorsMode));
     if (pv->fg_mode == NULL)
         return;
-    memset(pv->fg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
 
     pv->bg_mode = (TrColorsMode *)malloc(l * sizeof(TrColorsMode));
     if (pv->bg_mode == NULL)
         return;
-    memset(pv->bg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
+
+    tr_priv_init_buf(*pv);
 }
 void tr_pv_cleanup(TrPixelVector *pv) {
     if (pv->letter != NULL) {
@@ -479,27 +502,60 @@ void tr_pv_cleanup(TrPixelVector *pv) {
         pv->bg_mode = NULL;
     }
 }
-
-// Pixels - Helper functions
-// ----------------------------------------------------------------------------
-TrPixelSpan tr_atos(const TrPixelArray *pa) {
-    return (TrPixelSpan){
-        .letter = (char *)pa->letter,
-        .effects = (TrEffect *)pa->effects,
-        .fg_color = (uint32_t *)pa->fg_color,
-        .bg_color = (uint32_t *)pa->bg_color,
-        .fg_mode = (TrColorsMode *)pa->fg_mode,
-        .bg_mode = (TrColorsMode *)pa->bg_mode,
-        .width = pa->width,
-        .height = pa->height};
-}
-// ----------------------------------------------------------------------------
 // ============================================================================
 
 // Basic renderer
 // ============================================================================
 void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
-    tr_priv_draw_sprite(sprite.letter, sprite.effects, sprite.fg_color, sprite.bg_color, sprite.fg_mode, sprite.bg_mode, sprite.width, sprite.height, x, y);
+    if (sprite.width <= 0 || sprite.height <= 0)
+        return;
+
+    TrStyle curr = {
+        .effects = TR_DEFAULT_EFFECT,
+        .fg_color = TR_DEFAULT_COLOR_16,
+        .fg_mode = TR_COLORS_16,
+        .bg_color = TR_DEFAULT_COLOR_16,
+        .bg_mode = TR_COLORS_16,
+    };
+
+    int idx = 0;
+    for (int r = 0; r < sprite.height; r += 1) {
+        tr_move_cursor(x, y + r);
+
+        for (int c = 0; c < sprite.width; c += 1) {
+            int i = c + r * sprite.width;
+            bool changed = false;
+
+            if (curr.effects != sprite.effects[i]) {
+                tr_add_effects(sprite.effects[i] & ~curr.effects);
+                tr_remove_effects(curr.effects & ~sprite.effects[i]);
+                curr.effects = sprite.effects[i];
+                changed = true;
+            }
+
+            if (curr.fg_color != sprite.fg_color[i] || curr.fg_mode != sprite.fg_mode[i]) {
+                curr.fg_color = sprite.fg_color[i];
+                curr.fg_mode = sprite.fg_mode[i];
+                tr_set_fg(curr.fg_color, curr.fg_mode);
+                changed = true;
+            }
+
+            if (curr.bg_color != sprite.bg_color[i] || curr.bg_mode != sprite.bg_mode[i]) {
+                curr.bg_color = sprite.bg_color[i];
+                curr.bg_mode = sprite.bg_mode[i];
+                tr_set_bg(curr.bg_color, curr.bg_mode);
+                changed = true;
+            }
+
+            if (changed || (c == sprite.width - 1)) {
+                fwrite(sprite.letter + idx, sizeof(char), i - idx + 1, stdout);
+                idx = i + 1;
+            }
+        }
+        curr.bg_color = TR_DEFAULT_COLOR_16;
+        curr.bg_mode = TR_COLORS_16;
+        tr_reset_bg();
+    }
 }
 void tr_draw_text(const char *text, const TrStyle *style, int x, int y) {
     tr_move_cursor(x, y);
@@ -510,55 +566,43 @@ void tr_draw_text(const char *text, const TrStyle *style, int x, int y) {
 
 // Frame buffers
 // ============================================================================
-void tr_rc_init(TrRenderContext *fb, int width, int height) {
+void tr_ctx_init(TrRenderContext *ctx, int width, int height) {
     if ((width <= 0) || (height <= 0) || (width * height > TR_FB_LENGTH)) {
-        fb->width = 0;
-        fb->height = 0;
+        ctx->width = 0;
+        ctx->height = 0;
         return;
     }
-    fb->width = width;
-    fb->height = height;
+    ctx->width = width;
+    ctx->height = height;
 
-    size_t l = width * height;
-
-    memset(fb->front.letter, ' ', l * sizeof(char));
-    memset(fb->front.effects, TR_DEFAULT_EFFECT, l * sizeof(TrEffect));
-    memset(fb->front.fg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
-    memset(fb->front.bg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
-    memset(fb->front.fg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
-    memset(fb->front.bg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
-
-    memset(fb->back.letter, ' ', l * sizeof(char));
-    memset(fb->back.effects, TR_DEFAULT_EFFECT, l * sizeof(TrEffect));
-    memset(fb->back.fg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
-    memset(fb->back.bg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
-    memset(fb->back.fg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
-    memset(fb->back.bg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
+    tr_priv_init_buf(tr_ftos(&ctx->front, width, height));
+    tr_priv_init_buf(tr_ftos(&ctx->back, width, height));
 }
-void tr_rc_render(TrRenderContext *fb) {
+void tr_ctx_render(TrRenderContext *ctx) {
+    tr_draw_sprite(tr_ftos(&ctx->front, ctx->width, ctx->height), 0, 0);
 }
-void tr_rc_draw_sprite(TrRenderContext *fb, TrPixelSpan sprite, int x, int y) {
+void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y) {
     if (sprite.width <= 0 || sprite.height <= 0)
         return;
 
     int visible_width = 0;
     int sprite_x_idx = 0;
-    tr_priv_get_visible(&visible_width, &sprite_x_idx, fb->width, sprite.width, x);
+    tr_priv_get_visible(&visible_width, &sprite_x_idx, ctx->width, sprite.width, x);
     if (visible_width <= 0)
         return;
 
     int visible_height = 0;
     int sprite_y_idx = 0;
-    tr_priv_get_visible(&visible_height, &sprite_y_idx, fb->height, sprite.height, y);
+    tr_priv_get_visible(&visible_height, &sprite_y_idx, ctx->height, sprite.height, y);
     if (visible_height <= 0)
         return;
 
-    int fb_idx = (x > 0 ? x : 0) + (y > 0 ? y : 0) * fb->width;
+    int fb_idx = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width;
     int sprite_idx = sprite_x_idx + sprite_y_idx * sprite.width;
 
     for (int r = 0; r < visible_height; r += 1) {
-        memcpy(fb->back.letter + fb_idx, sprite.letter + sprite_idx, visible_width * sizeof(char));
-        memcpy(fb->back.effects + fb_idx, sprite.effects + sprite_idx, visible_width * sizeof(TrEffect));
+        memcpy(ctx->back.letter + fb_idx, sprite.letter + sprite_idx, visible_width * sizeof(char));
+        memcpy(ctx->back.effects + fb_idx, sprite.effects + sprite_idx, visible_width * sizeof(TrEffect));
 
         for (int c = 0; c < visible_width; c += 1) {
             int si = c + sprite_idx;
@@ -566,27 +610,29 @@ void tr_rc_draw_sprite(TrRenderContext *fb, TrPixelSpan sprite, int x, int y) {
             if (sprite.fg_color[si] != TR_TRANSPARENT) {
                 int fi = c + fb_idx;
 
-                fb->back.fg_color[fi] = sprite.fg_color[si];
-                fb->back.fg_mode[fi] = sprite.fg_color[si];
+                ctx->back.fg_color[fi] = sprite.fg_color[si];
+                ctx->back.fg_mode[fi] = sprite.fg_color[si];
             }
             if (sprite.bg_color[si] != TR_TRANSPARENT) {
                 int fi = c + fb_idx;
 
-                fb->back.bg_color[fi] = sprite.bg_color[si];
-                fb->back.bg_mode[fi] = sprite.bg_mode[si];
+                ctx->back.bg_color[fi] = sprite.bg_color[si];
+                ctx->back.bg_mode[fi] = sprite.bg_mode[si];
             }
         }
 
-        fb_idx += fb->width;
+        fb_idx += ctx->width;
         sprite_idx += sprite.width;
     }
 }
-void tr_rc_draw_text(TrRenderContext *fb, const char *text, const TrStyle *style, int x, int y) {
+void tr_ctx_draw_text(TrRenderContext *ctx, const char *text, const TrStyle *style, int x, int y) {
 }
 // ============================================================================
 
-// Helper functions
+// Utility functions
 // ============================================================================
+// Debug
+// ----------------------------------------------------------------------------
 void tr_print_effects(TrEffect effects) {
     if (effects == TR_DEFAULT_EFFECT) {
         fputs("DEFAULT_EFFECT", stdout);
@@ -618,6 +664,33 @@ void tr_print_effects(TrEffect effects) {
 }
 void tr_print_color(uint32_t color, TrColorsMode colors_mode) {
 }
+// ----------------------------------------------------------------------------
+
+// Type conversion
+// ----------------------------------------------------------------------------
+TrPixelSpan tr_atos(const TrPixelArray *pa) {
+    return (TrPixelSpan){
+        .letter = (char *)pa->letter,
+        .effects = (TrEffect *)pa->effects,
+        .fg_color = (uint32_t *)pa->fg_color,
+        .bg_color = (uint32_t *)pa->bg_color,
+        .fg_mode = (TrColorsMode *)pa->fg_mode,
+        .bg_mode = (TrColorsMode *)pa->bg_mode,
+        .width = pa->width,
+        .height = pa->height};
+}
+TrPixelSpan tr_ftos(const TrFrameBufferBase *fb, int width, int height) {
+    return (TrPixelSpan){
+        .letter = (char *)fb->letter,
+        .effects = (TrEffect *)fb->effects,
+        .fg_color = (uint32_t *)fb->fg_color,
+        .bg_color = (uint32_t *)fb->bg_color,
+        .fg_mode = (TrColorsMode *)fb->fg_mode,
+        .bg_mode = (TrColorsMode *)fb->bg_mode,
+        .width = width,
+        .height = height};
+}
+// ----------------------------------------------------------------------------
 // ============================================================================
 
 // Helper functions (private)
@@ -638,56 +711,17 @@ void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int siz
         }
     }
 }
-void tr_priv_draw_sprite(char *letter, TrEffect *effects, uint32_t *fg_color, uint32_t *bg_color, TrColorsMode *fg_mode, TrColorsMode *bg_mode, int width, int height, int x, int y) {
-    if (width <= 0 || height <= 0)
-        return;
+void tr_priv_init_buf(TrPixelSpan buf) {
+    size_t l = buf.width * buf.height;
 
-    TrStyle curr = {
-        .effects = TR_DEFAULT_EFFECT,
-        .fg_color = TR_DEFAULT_COLOR_16,
-        .fg_mode = TR_COLORS_16,
-        .bg_color = TR_DEFAULT_COLOR_16,
-        .bg_mode = TR_COLORS_16,
-    };
-
-    int idx = 0;
-    for (int r = 0; r < height; r += 1) {
-        tr_move_cursor(x, y + r);
-
-        for (int c = 0; c < width; c += 1) {
-            int i = c + r * width;
-            bool changed = false;
-
-            if (curr.effects != effects[i]) {
-                tr_add_effects(effects[i] & ~curr.effects);
-                tr_remove_effects(curr.effects & ~effects[i]);
-                curr.effects = effects[i];
-                changed = true;
-            }
-
-            if (curr.fg_color != fg_color[i] || curr.fg_mode != fg_mode[i]) {
-                curr.fg_color = fg_color[i];
-                curr.fg_mode = fg_mode[i];
-                tr_set_fg(curr.fg_color, curr.fg_mode);
-                changed = true;
-            }
-
-            if (curr.bg_color != bg_color[i] || curr.bg_mode != bg_mode[i]) {
-                curr.bg_color = bg_color[i];
-                curr.bg_mode = bg_mode[i];
-                tr_set_bg(curr.bg_color, curr.bg_mode);
-                changed = true;
-            }
-
-            if (changed || (c == width - 1)) {
-                fwrite(letter + idx, sizeof(char), i - idx + 1, stdout);
-                idx = i;
-            }
-        }
-        curr.bg_color = TR_DEFAULT_COLOR_16;
-        curr.bg_mode = TR_COLORS_16;
-        tr_reset_bg();
-    }
+    memset(buf.letter, ' ', l * sizeof(char));
+    memset(buf.effects, TR_DEFAULT_EFFECT, l * sizeof(TrEffect));
+    memset(buf.fg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
+    memset(buf.bg_color, TR_DEFAULT_COLOR_16, l * sizeof(uint32_t));
+    memset(buf.fg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
+    memset(buf.bg_mode, TR_COLORS_16, l * sizeof(TrColorsMode));
+}
+void tr_priv_swap_buf(TrRenderContext *ctx) {
 }
 // ============================================================================
 

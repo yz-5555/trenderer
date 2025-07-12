@@ -44,6 +44,12 @@ int main(void) {
         tr_reset_bg();
         printf("\n");
     }
+    printf("haha!\n");
+    TrPixelArray v;
+    tr_pa_init(&v, 8, 8);
+    for (int i = 0; i < v.width * v.height; i += 1) {
+        printf("Pixel[%d]: %d | %d | %d | %d | %d | %d\n", i, (int)v.letter[i], (int)v.effects[i], v.fg_color[i], v.bg_color[i], (int)v.fg_mode[i], (int)v.bg_mode[i]);
+    }
 
     return 0;
 }

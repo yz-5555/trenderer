@@ -20,10 +20,11 @@ Do this:
 ```c
 #define TRENDERER_IMPLMENTATION
 ```
-before you include `trenderer.h` in *one* C or C++ file to create the implmentation.
+before you include `trenderer.h` **one** C or C++ file to create the implmentation.
+Check the comments in the header for detailed info.
 
 ## Notes
-Effects and colors may look different depending on your terminal. Check if yours support them.
+  - Effects and colors may look different depending on your terminal. Check if yours support them.
 
 ## Thanks to
 Project and code structure inspired by [raylib](https://github.com/raysan5/raylib).

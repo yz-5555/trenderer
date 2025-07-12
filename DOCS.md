@@ -11,7 +11,9 @@
 | Private functions      | tr_priv_verb       | `tr_priv_get_visible(...)`       |
 | Else                   | snake_case         | `fg_color`                       |
 ## Defines
+#### `TRENDERER_H`
+It's a 
 ## Macros
 ## Types (enums, structs)
 ## Functions
-## Helper functions
+## Utility functions
