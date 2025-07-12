@@ -21,10 +21,15 @@ Do this:
 #define TRENDERER_IMPLMENTATION
 ```
 before you include `trenderer.h` **one** C or C++ file to create the implmentation.
+
 Check the comments in the header for detailed info.
 
 ## Notes
-  - Effects and colors may look different depending on your terminal. Check if yours support them.
+Effects and colors may look different depending on your terminal. Check if yours support them.
+
+## Possible improvements
+  - Unicodes support.
+  - z-buffer support.
 
 ## Thanks to
 Project and code structure inspired by [raylib](https://github.com/raysan5/raylib).
