@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/******************************************************************************
+/*=============================================================================
  *
  * trenderer v0.1.0
  *     NOTES:
@@ -28,7 +28,7 @@
  *
  *         There are no macro functions.
  *
- *****************************************************************************/
+ *===========================================================================*/
 
 // Screen
 // ============================================================================
@@ -795,12 +795,18 @@ bool tr_priv_fb_cmp(const TrRenderContext *ctx, int idx) {
     return true;
 }
 void tr_priv_get_dirty_rect(int *left, int *top, int *right, int *bottom, const TrRenderContext *ctx) {
+    *left = ctx->width - 1;
+    *top = ctx->height - 1;
+    *right = 0;
+    *bottom = 0;
+
     int fb_idx = 0;
     for (int r = 0; r < ctx->height; r += 1) {
         if (tr_priv_fb_memcmp(ctx, fb_idx, ctx->width)) {
             fb_idx += ctx->width;
             continue;
         }
+
         for (int c = 0; c < ctx->width; c += 1) {
             int fi = c + fb_idx;
             if (tr_priv_fb_cmp(ctx, fi))
