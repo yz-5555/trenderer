@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/*=============================================================================
+/* ============================================================================
  *
  * trenderer v0.1.0
  *     NOTES:
@@ -28,7 +28,7 @@
  *
  *         There are no macro functions.
  *
- *===========================================================================*/
+ * ==========================================================================*/
 
 // Screen
 // ============================================================================
@@ -73,7 +73,7 @@ void tr_set_bg(uint32_t bg_color, TrColorsMode bg_mode); // Set background color
 void tr_reset_fg(void);                                  // Reset foreground color to default value.
 void tr_reset_bg(void);                                  // Reset background color to default value.
 
-// Colors - Helper functions
+// Colors - Utility functions
 // ----------------------------------------------------------------------------
 uint32_t tr_gray_256(uint8_t scale);              // Create a gray scale value in ANSI 256 colors.
 uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b); // Create a rgb value.
@@ -191,13 +191,13 @@ void tr_pv_init(TrPixelVector *pv, int width, int height);
 void tr_pv_cleanup(TrPixelVector *pv);
 
 typedef TrPixelVector TrPixelSpan; // View for TrPixel containers. Similar to std::span in C++.
-
 // ============================================================================
 
 // Basic renderer
 // ============================================================================
-void tr_draw_sprite(TrPixelSpan sprite, int x, int y);            // Draw a sprite on the screen.
-void tr_draw_text(const char *text, TrStyle style, int x, int y); // Draw a string on the screen.
+void tr_draw_sprite(TrPixelSpan sprite, int x, int y);                                                          // Draw a sprite on the screen.
+void tr_draw_spritesheet(TrPixelSpan ss, int sprite_x, int sprite_y, int sprite_w, int sprite_h, int x, int y); // Draw a sprite in a spritesheet on the screen.
+void tr_draw_text(const char *text, TrStyle style, int x, int y);                                               // Draw a string on the screen.
 // ============================================================================
 
 // Double-buffering renderer
@@ -234,8 +234,7 @@ void tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyl
 // ============================================================================
 // Debug
 // ----------------------------------------------------------------------------
-void tr_print_effects(TrEffect effects);                       // Print the names of effects.
-void tr_print_color(uint32_t color, TrColorsMode colors_mode); // Print the name of a color.
+void tr_print_effects(TrEffect effects); // Print the names of effects.
 // ----------------------------------------------------------------------------
 
 // Type conversion
@@ -246,16 +245,18 @@ TrPixelSpan tr_ftos(const TrFrameBufferBase *fb, int width, int height); // Stan
 
 // Pixel buffer
 // ----------------------------------------------------------------------------
-void tr_buf_clear(TrPixelSpan buf, uint32_t bg_color, TrColorsMode bg_mode); // Clear pixel buffer
+void tr_clear_buf(TrPixelSpan buf, uint32_t bg_color, TrColorsMode bg_mode); // Clear pixel buffer
 // ----------------------------------------------------------------------------
 // ============================================================================
 
 // Helper functions (private)
 // ============================================================================
+void tr_priv_ansi_row(TrPixelSpan sprite, TrStyle *curr, bool *changed, int i);
 void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos);
-bool tr_priv_fb_memcmp(const TrRenderContext *ctx, int from, int len);
-bool tr_priv_fb_cmp(const TrRenderContext *ctx, int idx);
-void tr_priv_get_dirty_rect(int *left, int *top, int *right, int *bottom, const TrRenderContext *ctx);
+bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int from, int len);
+bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx);
+void tr_priv_ctx_swap(TrRenderContext *ctx);
+void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, const TrRenderContext *ctx);
 // ============================================================================
 
 #endif // TRENDERER_H
@@ -384,7 +385,7 @@ void tr_reset_bg(void) {
     fputs("\x1b[49m", stdout);
 }
 
-// Colors - Helper functions
+// Colors - Utility functions
 // ----------------------------------------------------------------------------
 uint32_t tr_gray_256(uint8_t scale) {
     return (scale > 23) ? 232 : (232 + scale);
@@ -439,7 +440,7 @@ void tr_pa_init(TrPixelArray *pa, int width, int height) {
     pa->width = width;
     pa->height = height;
 
-    tr_buf_clear(tr_atos(pa), TR_DEFAULT_COLOR_16, TR_COLORS_16);
+    tr_clear_buf(tr_atos(pa), TR_DEFAULT_COLOR_16, TR_COLORS_16);
 }
 void tr_pv_init(TrPixelVector *pv, int width, int height) {
     if (width <= 0 || height <= 0) {
@@ -476,7 +477,7 @@ void tr_pv_init(TrPixelVector *pv, int width, int height) {
     if (pv->bg_mode == NULL)
         return;
 
-    tr_buf_clear(*pv, TR_DEFAULT_COLOR_16, TR_COLORS_16);
+    tr_clear_buf(*pv, TR_DEFAULT_COLOR_16, TR_COLORS_16);
 }
 void tr_pv_cleanup(TrPixelVector *pv) {
     if (pv->letter != NULL) {
@@ -509,7 +510,7 @@ void tr_pv_cleanup(TrPixelVector *pv) {
 // Basic renderer
 // ============================================================================
 void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
-    if (sprite.width <= 0 || sprite.height <= 0)
+    if (sprite.width <= 0 || sprite.height <= 0 || x < 0 || y < 0)
         return;
 
     TrStyle curr = {
@@ -528,26 +529,7 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
             int i = c + r * sprite.width;
             bool changed = false;
 
-            if (curr.effects != sprite.effects[i]) {
-                tr_add_effects(sprite.effects[i] & ~curr.effects);
-                tr_remove_effects(curr.effects & ~sprite.effects[i]);
-                curr.effects = sprite.effects[i];
-                changed = true;
-            }
-
-            if (curr.fg_color != sprite.fg_color[i] || curr.fg_mode != sprite.fg_mode[i]) {
-                curr.fg_color = sprite.fg_color[i];
-                curr.fg_mode = sprite.fg_mode[i];
-                tr_set_fg(curr.fg_color, curr.fg_mode);
-                changed = true;
-            }
-
-            if (curr.bg_color != sprite.bg_color[i] || curr.bg_mode != sprite.bg_mode[i]) {
-                curr.bg_color = sprite.bg_color[i];
-                curr.bg_mode = sprite.bg_mode[i];
-                tr_set_bg(curr.bg_color, curr.bg_mode);
-                changed = true;
-            }
+            tr_priv_ansi_row(sprite, &curr, &changed, i);
 
             if (changed || (c == sprite.width - 1)) {
                 fwrite(sprite.letter + idx, sizeof(char), i - idx + 1, stdout);
@@ -558,6 +540,52 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
         curr.bg_mode = TR_COLORS_16;
         tr_reset_bg();
     }
+    tr_reset_all();
+}
+void tr_draw_spritesheet(TrPixelSpan ss, int sprite_x, int sprite_y, int sprite_w, int sprite_h, int x, int y) {
+    // spritesheet and position validation
+    if (ss.width <= 0 || ss.height <= 0 || x < 0 || y < 0)
+        return;
+    // sprite validation
+    if (sprite_w <= 0 || sprite_h <= 0 ||
+        sprite_x < 0 || sprite_x >= ss.width ||
+        sprite_y < 0 || sprite_y >= ss.height ||
+        sprite_x + sprite_w > ss.width ||
+        sprite_y + sprite_h > ss.height)
+        return;
+
+    TrStyle curr = {
+        .effects = TR_DEFAULT_EFFECT,
+        .fg_color = TR_DEFAULT_COLOR_16,
+        .fg_mode = TR_COLORS_16,
+        .bg_color = TR_DEFAULT_COLOR_16,
+        .bg_mode = TR_COLORS_16,
+    };
+
+    int idx = sprite_x + sprite_y * ss.width;
+    for (int r = 0; r < sprite_h; r += 1) {
+        tr_move_cursor(x, y + r);
+
+        for (int c = 0; c < sprite_w; c += 1) {
+            int i = (c + sprite_x) + (r + sprite_y) * ss.width;
+            bool changed = false;
+
+            tr_priv_ansi_row(ss, &curr, &changed, i);
+
+            if (changed || (c == sprite_w - 1)) {
+                fwrite(ss.letter + idx, sizeof(char), i - idx + 1, stdout);
+
+                if (changed)
+                    idx = i + 1;
+                else if (c == sprite_w - 1)
+                    idx += ss.width;
+            }
+        }
+        curr.bg_color = TR_DEFAULT_COLOR_16;
+        curr.bg_mode = TR_COLORS_16;
+        tr_reset_bg();
+    }
+    tr_reset_all();
 }
 void tr_draw_text(const char *text, TrStyle style, int x, int y) {
     tr_move_cursor(x, y);
@@ -577,14 +605,23 @@ void tr_ctx_init(TrRenderContext *ctx, int width, int height) {
     ctx->width = width;
     ctx->height = height;
 
-    tr_buf_clear(tr_ftos(&ctx->front, width, height), TR_DEFAULT_COLOR_16, TR_COLORS_16);
-    tr_buf_clear(tr_ftos(&ctx->back, width, height), TR_DEFAULT_COLOR_16, TR_COLORS_16);
+    tr_clear_buf(tr_ftos(&ctx->front, width, height), TR_DEFAULT_COLOR_16, TR_COLORS_16);
+    tr_clear_buf(tr_ftos(&ctx->back, width, height), TR_DEFAULT_COLOR_16, TR_COLORS_16);
 }
 void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color, TrColorsMode bg_mode) {
-    tr_buf_clear(tr_ftos(&ctx->back, ctx->width, ctx->height), bg_color, bg_mode);
+    tr_clear_buf(tr_ftos(&ctx->back, ctx->width, ctx->height), bg_color, bg_mode);
 }
 void tr_ctx_render(TrRenderContext *ctx) {
-    tr_draw_sprite(tr_ftos(&ctx->front, ctx->width, ctx->height), 0, 0);
+    int dirty_rect_x = 0, dirty_rect_y = 0;
+    int dirty_rect_w = 0, dirty_rect_h = 0;
+    tr_priv_get_dirty_rect(&dirty_rect_x, &dirty_rect_y, &dirty_rect_w, &dirty_rect_h, ctx);
+
+    if (dirty_rect_w == 0 || dirty_rect_h == 0)
+        return;
+
+    tr_draw_spritesheet(tr_ftos(&ctx->back, ctx->width, ctx->height), dirty_rect_x, dirty_rect_y, dirty_rect_w, dirty_rect_h, 0, 0);
+
+    tr_priv_ctx_swap(ctx);
 }
 void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y) {
     if (sprite.width <= 0 || sprite.height <= 0)
@@ -687,8 +724,6 @@ void tr_print_effects(TrEffect effects) {
     if (effects & TR_STRIKETHROUGH)
         fputs("STRIKETHROUGH ", stdout);
 }
-void tr_print_color(uint32_t color, TrColorsMode colors_mode) {
-}
 // ----------------------------------------------------------------------------
 
 // Type conversion
@@ -719,7 +754,7 @@ TrPixelSpan tr_ftos(const TrFrameBufferBase *fb, int width, int height) {
 
 // Pixel buffer
 // ----------------------------------------------------------------------------
-void tr_buf_clear(TrPixelSpan buf, uint32_t bg_color, TrColorsMode bg_mode) {
+void tr_clear_buf(TrPixelSpan buf, uint32_t bg_color, TrColorsMode bg_mode) {
     size_t l = buf.width * buf.height;
 
     memset(buf.letter, ' ', l * sizeof(char));
@@ -736,9 +771,32 @@ void tr_buf_clear(TrPixelSpan buf, uint32_t bg_color, TrColorsMode bg_mode) {
 
 // Helper functions (private)
 // ============================================================================
+void tr_priv_ansi_row(TrPixelSpan sprite, TrStyle *curr, bool *changed, int i) {
+
+    if (curr->effects != sprite.effects[i]) {
+        tr_add_effects(sprite.effects[i] & ~curr->effects);
+        tr_remove_effects(curr->effects & ~sprite.effects[i]);
+        curr->effects = sprite.effects[i];
+        *changed = true;
+    }
+
+    if (curr->fg_color != sprite.fg_color[i] || curr->fg_mode != sprite.fg_mode[i]) {
+        curr->fg_color = sprite.fg_color[i];
+        curr->fg_mode = sprite.fg_mode[i];
+        tr_set_fg(curr->fg_color, curr->fg_mode);
+        *changed = true;
+    }
+
+    if (curr->bg_color != sprite.bg_color[i] || curr->bg_mode != sprite.bg_mode[i]) {
+        curr->bg_color = sprite.bg_color[i];
+        curr->bg_mode = sprite.bg_mode[i];
+        tr_set_bg(curr->bg_color, curr->bg_mode);
+        *changed = true;
+    }
+}
 void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos) {
     if (pos >= 0) {
-        if (size + pos < fb_size) {
+        if (pos + size < fb_size) {
             *result_size = size;
             *result_idx = 0;
         } else {
@@ -746,13 +804,13 @@ void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int siz
             *result_idx = 0;
         }
     } else {
-        if (size + pos > 0) {
+        if (pos + size > 0) {
             *result_size = size + pos;
             *result_idx = -pos;
         }
     }
 }
-bool tr_priv_fb_memcmp(const TrRenderContext *ctx, int from, int len) {
+bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int from, int len) {
     if (memcmp(ctx->front.letter + from, ctx->back.letter + from, len * sizeof(char)))
         return false;
 
@@ -773,7 +831,7 @@ bool tr_priv_fb_memcmp(const TrRenderContext *ctx, int from, int len) {
 
     return true;
 }
-bool tr_priv_fb_cmp(const TrRenderContext *ctx, int idx) {
+bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx) {
     if (ctx->front.letter[idx] != ctx->back.letter[idx])
         return false;
 
@@ -794,25 +852,55 @@ bool tr_priv_fb_cmp(const TrRenderContext *ctx, int idx) {
 
     return true;
 }
-void tr_priv_get_dirty_rect(int *left, int *top, int *right, int *bottom, const TrRenderContext *ctx) {
-    *left = ctx->width - 1;
-    *top = ctx->height - 1;
-    *right = 0;
-    *bottom = 0;
+void tr_priv_ctx_swap(TrRenderContext *ctx) {
+    size_t l = ctx->width * ctx->height;
+
+    memcpy(ctx->front.letter, ctx->back.letter, l * sizeof(char));
+    memcpy(ctx->front.effects, ctx->back.effects, l * sizeof(TrEffect));
+    memcpy(ctx->front.fg_color, ctx->back.fg_color, l * sizeof(uint32_t));
+    memcpy(ctx->front.bg_color, ctx->back.bg_color, l * sizeof(uint32_t));
+    memcpy(ctx->front.fg_mode, ctx->back.fg_mode, l * sizeof(TrColorsMode));
+    memcpy(ctx->front.bg_mode, ctx->back.bg_mode, l * sizeof(TrColorsMode));
+}
+void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, const TrRenderContext *ctx) {
+    int left = ctx->width - 1;
+    int top = ctx->height - 1;
+    int right = 0;
+    int bottom = 0;
 
     int fb_idx = 0;
     for (int r = 0; r < ctx->height; r += 1) {
-        if (tr_priv_fb_memcmp(ctx, fb_idx, ctx->width)) {
+        if (tr_priv_ctx_memcmp(ctx, fb_idx, ctx->width)) {
             fb_idx += ctx->width;
             continue;
         }
 
         for (int c = 0; c < ctx->width; c += 1) {
             int fi = c + fb_idx;
-            if (tr_priv_fb_cmp(ctx, fi))
+            if (tr_priv_ctx_cmp(ctx, fi))
                 continue;
+
+            if (left > c)
+                left = c;
+            if (top > r)
+                top = r;
+            if (right < c)
+                right = c;
+            if (bottom < r)
+                bottom = r;
         }
     }
+    if (left > right || top > bottom) {
+        *x = 0;
+        *y = 0;
+        *width = 0;
+        *height = 0;
+        return;
+    }
+    *x = left;
+    *y = top;
+    *width = right - left + 1;
+    *height = bottom - top + 1;
 }
 // ============================================================================
 
