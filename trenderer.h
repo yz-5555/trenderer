@@ -253,9 +253,9 @@ void tr_clear_buf(TrPixelSpan buf, uint32_t bg_color, TrColorsMode bg_mode); // 
 // ============================================================================
 void tr_priv_ansi_row(TrPixelSpan sprite, TrStyle *curr, bool *changed, int i);
 void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos);
-bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int from, int len);
+bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, int len);
 bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx);
-void tr_priv_ctx_swap(TrRenderContext *ctx);
+void tr_priv_ctx_swap(TrRenderContext *ctx, int dirty_rect_x, int dirty_rect_y, int dirty_rect_w, int dirty_rect_h);
 void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, const TrRenderContext *ctx);
 // ============================================================================
 
@@ -432,7 +432,7 @@ void tr_copy_style(TrStyle *dest, TrStyle src) {
 // Pixels
 // ============================================================================
 void tr_pa_init(TrPixelArray *pa, int width, int height) {
-    if ((width <= 0) || (height <= 0) || (width * height > TR_PA_LENGTH)) {
+    if (width <= 0 || height <= 0 || (width * height > TR_PA_LENGTH)) {
         pa->width = 0;
         pa->height = 0;
         return;
@@ -510,7 +510,7 @@ void tr_pv_cleanup(TrPixelVector *pv) {
 // Basic renderer
 // ============================================================================
 void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
-    if (sprite.width <= 0 || sprite.height <= 0 || x < 0 || y < 0)
+    if ((sprite.width <= 0 || sprite.height <= 0) || (x < 0 || y < 0))
         return;
 
     TrStyle curr = {
@@ -522,16 +522,16 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
     };
 
     int idx = 0;
-    for (int r = 0; r < sprite.height; r += 1) {
-        tr_move_cursor(x, y + r);
+    for (int row = 0; row < sprite.height; row += 1) {
+        tr_move_cursor(x, y + row);
 
-        for (int c = 0; c < sprite.width; c += 1) {
-            int i = c + r * sprite.width;
+        for (int col = 0; col < sprite.width; col += 1) {
+            int i = col + row * sprite.width;
             bool changed = false;
 
             tr_priv_ansi_row(sprite, &curr, &changed, i);
 
-            if (changed || (c == sprite.width - 1)) {
+            if (changed || (col == sprite.width - 1)) {
                 fwrite(sprite.letter + idx, sizeof(char), i - idx + 1, stdout);
                 idx = i + 1;
             }
@@ -544,14 +544,14 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
 }
 void tr_draw_spritesheet(TrPixelSpan ss, int sprite_x, int sprite_y, int sprite_w, int sprite_h, int x, int y) {
     // spritesheet and position validation
-    if (ss.width <= 0 || ss.height <= 0 || x < 0 || y < 0)
+    if ((ss.width <= 0 || ss.height <= 0) || (x < 0 || y < 0))
         return;
     // sprite validation
-    if (sprite_w <= 0 || sprite_h <= 0 ||
-        sprite_x < 0 || sprite_x >= ss.width ||
-        sprite_y < 0 || sprite_y >= ss.height ||
-        sprite_x + sprite_w > ss.width ||
-        sprite_y + sprite_h > ss.height)
+    if ((sprite_w <= 0 || sprite_h <= 0) ||
+        (sprite_x < 0 || sprite_x >= ss.width) ||
+        (sprite_y < 0 || sprite_y >= ss.height) ||
+        (sprite_x + sprite_w > ss.width) ||
+        (sprite_y + sprite_h > ss.height))
         return;
 
     TrStyle curr = {
@@ -563,21 +563,21 @@ void tr_draw_spritesheet(TrPixelSpan ss, int sprite_x, int sprite_y, int sprite_
     };
 
     int idx = sprite_x + sprite_y * ss.width;
-    for (int r = 0; r < sprite_h; r += 1) {
-        tr_move_cursor(x, y + r);
+    for (int row = 0; row < sprite_h; row += 1) {
+        tr_move_cursor(x, y + row);
 
-        for (int c = 0; c < sprite_w; c += 1) {
-            int i = (c + sprite_x) + (r + sprite_y) * ss.width;
+        for (int col = 0; col < sprite_w; col += 1) {
+            int i = (col + sprite_x) + (row + sprite_y) * ss.width;
             bool changed = false;
 
             tr_priv_ansi_row(ss, &curr, &changed, i);
 
-            if (changed || (c == sprite_w - 1)) {
+            if (changed || (col == sprite_w - 1)) {
                 fwrite(ss.letter + idx, sizeof(char), i - idx + 1, stdout);
 
                 if (changed)
                     idx = i + 1;
-                else if (c == sprite_w - 1)
+                else if (col == sprite_w - 1)
                     idx += ss.width;
             }
         }
@@ -588,6 +588,8 @@ void tr_draw_spritesheet(TrPixelSpan ss, int sprite_x, int sprite_y, int sprite_
     tr_reset_all();
 }
 void tr_draw_text(const char *text, TrStyle style, int x, int y) {
+    if (y < 0)
+        return;
     tr_move_cursor(x, y);
     tr_set_style(style);
     fputs(text, stdout);
@@ -597,7 +599,7 @@ void tr_draw_text(const char *text, TrStyle style, int x, int y) {
 // Frame buffers
 // ============================================================================
 void tr_ctx_init(TrRenderContext *ctx, int width, int height) {
-    if ((width <= 0) || (height <= 0) || (width * height > TR_FB_LENGTH)) {
+    if (width <= 0 || height <= 0 || (width * height > TR_FB_LENGTH)) {
         ctx->width = 0;
         ctx->height = 0;
         return;
@@ -615,13 +617,14 @@ void tr_ctx_render(TrRenderContext *ctx) {
     int dirty_rect_x = 0, dirty_rect_y = 0;
     int dirty_rect_w = 0, dirty_rect_h = 0;
     tr_priv_get_dirty_rect(&dirty_rect_x, &dirty_rect_y, &dirty_rect_w, &dirty_rect_h, ctx);
-
     if (dirty_rect_w == 0 || dirty_rect_h == 0)
         return;
 
-    tr_draw_spritesheet(tr_ftos(&ctx->back, ctx->width, ctx->height), dirty_rect_x, dirty_rect_y, dirty_rect_w, dirty_rect_h, 0, 0);
+    // Draw only dirty rectangle.
+    tr_draw_spritesheet(tr_ftos(&ctx->back, ctx->width, ctx->height), dirty_rect_x, dirty_rect_y, dirty_rect_w, dirty_rect_h, dirty_rect_x, dirty_rect_y);
 
-    tr_priv_ctx_swap(ctx);
+    // Update `front` with `back`.
+    tr_priv_ctx_swap(ctx, dirty_rect_x, dirty_rect_y, dirty_rect_w, dirty_rect_h);
 }
 void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y) {
     if (sprite.width <= 0 || sprite.height <= 0)
@@ -642,21 +645,21 @@ void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y) 
     int fb_idx = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width;
     int sprite_idx = sprite_x_idx + sprite_y_idx * sprite.width;
 
-    for (int r = 0; r < visible_height; r += 1) {
+    for (int row = 0; row < visible_height; row += 1) {
         memcpy(ctx->back.letter + fb_idx, sprite.letter + sprite_idx, visible_width * sizeof(char));
         memcpy(ctx->back.effects + fb_idx, sprite.effects + sprite_idx, visible_width * sizeof(TrEffect));
 
-        for (int c = 0; c < visible_width; c += 1) {
-            int si = c + sprite_idx;
+        for (int col = 0; col < visible_width; col += 1) {
+            int si = col + sprite_idx;
 
             if (sprite.fg_color[si] != TR_TRANSPARENT) {
-                int fi = c + fb_idx;
+                int fi = col + fb_idx;
 
                 ctx->back.fg_color[fi] = sprite.fg_color[si];
                 ctx->back.fg_mode[fi] = sprite.fg_color[si];
             }
             if (sprite.bg_color[si] != TR_TRANSPARENT) {
-                int fi = c + fb_idx;
+                int fi = col + fb_idx;
 
                 ctx->back.bg_color[fi] = sprite.bg_color[si];
                 ctx->back.bg_mode[fi] = sprite.bg_mode[si];
@@ -668,7 +671,7 @@ void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y) 
     }
 }
 void tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y) {
-    if ((len <= 0) || (y < 0) || (y >= ctx->height))
+    if (len <= 0 || (y < 0 || y >= ctx->height))
         return;
     int visible_len = 0;
     int text_idx = 0;
@@ -810,23 +813,23 @@ void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int siz
         }
     }
 }
-bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int from, int len) {
-    if (memcmp(ctx->front.letter + from, ctx->back.letter + from, len * sizeof(char)))
+bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, int len) {
+    if (memcmp(ctx->front.letter + idx, ctx->back.letter + idx, len * sizeof(char)))
         return false;
 
-    if (memcmp(ctx->front.effects + from, ctx->back.effects + from, len * sizeof(TrEffect)))
+    if (memcmp(ctx->front.effects + idx, ctx->back.effects + idx, len * sizeof(TrEffect)))
         return false;
 
-    if (memcmp(ctx->front.fg_color + from, ctx->back.fg_color + from, len * sizeof(uint32_t)))
+    if (memcmp(ctx->front.fg_color + idx, ctx->back.fg_color + idx, len * sizeof(uint32_t)))
         return false;
 
-    if (memcmp(ctx->front.bg_color + from, ctx->back.bg_color + from, len * sizeof(uint32_t)))
+    if (memcmp(ctx->front.bg_color + idx, ctx->back.bg_color + idx, len * sizeof(uint32_t)))
         return false;
 
-    if (memcmp(ctx->front.fg_mode + from, ctx->back.fg_mode + from, len * sizeof(TrColorsMode)))
+    if (memcmp(ctx->front.fg_mode + idx, ctx->back.fg_mode + idx, len * sizeof(TrColorsMode)))
         return false;
 
-    if (memcmp(ctx->front.bg_mode + from, ctx->back.bg_mode + from, len * sizeof(TrColorsMode)))
+    if (memcmp(ctx->front.bg_mode + idx, ctx->back.bg_mode + idx, len * sizeof(TrColorsMode)))
         return false;
 
     return true;
@@ -852,7 +855,8 @@ bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx) {
 
     return true;
 }
-void tr_priv_ctx_swap(TrRenderContext *ctx) {
+void tr_priv_ctx_swap(TrRenderContext *ctx, int dirty_rect_x, int dirty_rect_y, int dirty_rect_w, int dirty_rect_h) {
+    // Copy only dirty parts, or all?
     size_t l = ctx->width * ctx->height;
 
     memcpy(ctx->front.letter, ctx->back.letter, l * sizeof(char));
@@ -869,25 +873,25 @@ void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, const TrRen
     int bottom = 0;
 
     int fb_idx = 0;
-    for (int r = 0; r < ctx->height; r += 1) {
+    for (int row = 0; row < ctx->height; row += 1) {
         if (tr_priv_ctx_memcmp(ctx, fb_idx, ctx->width)) {
             fb_idx += ctx->width;
             continue;
         }
 
-        for (int c = 0; c < ctx->width; c += 1) {
-            int fi = c + fb_idx;
+        for (int col = 0; col < ctx->width; col += 1) {
+            int fi = col + fb_idx;
             if (tr_priv_ctx_cmp(ctx, fi))
                 continue;
 
-            if (left > c)
-                left = c;
-            if (top > r)
-                top = r;
-            if (right < c)
-                right = c;
-            if (bottom < r)
-                bottom = r;
+            if (left > col)
+                left = col;
+            if (top > row)
+                top = row;
+            if (right < col)
+                right = col;
+            if (bottom < row)
+                bottom = row;
         }
     }
     if (left > right || top > bottom) {
