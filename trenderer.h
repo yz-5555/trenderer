@@ -519,19 +519,19 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
         .bg_mode = TR_COLORS_16,
     };
 
-    int sp_row = 0;
+    int letter_idx = 0;
     for (int row = 0; row < sprite.height; row += 1) {
         tr_move_cursor(x, y + row);
 
         for (int col = 0; col < sprite.width; col += 1) {
-            int i = col + row * sprite.width;
+            int i = col + row * sprite.width; // [row][col]
             bool changed = false;
 
             tr_priv_set_ansi(sprite, &curr, &changed, i);
 
             if (changed || (col == sprite.width - 1)) {
-                fwrite(sprite.letter + sp_row, sizeof(char), i - sp_row + 1, stdout);
-                sp_row = i + 1;
+                fwrite(sprite.letter + letter_idx, sizeof(char), i - letter_idx + 1, stdout);
+                letter_idx = i + 1;
             }
         }
         curr.bg_color = TR_DEFAULT_COLOR_16;
@@ -563,18 +563,20 @@ void tr_draw_spritesheet(TrPixelSpan ss, int sp_x, int sp_y, int sp_w, int sp_h,
     for (int row = 0; row < sp_h; row += 1) {
         tr_move_cursor(x, y + row);
 
-        int sp_row = sp_x + (sp_y + row) * ss.width;
+        int sp_row_base = sp_x + (sp_y + row) * ss.width; // [sp_y + row][sp_x]
+        int letter_idx = sp_row_base;
+
         for (int col = 0; col < sp_w; col += 1) {
-            int sp_idx = col + sp_row;
+            int sp_idx = col + sp_row; // [sp_y + row][sp_x + col]
             bool changed = false;
 
             tr_priv_set_ansi(ss, &curr, &changed, sp_idx);
 
             if (changed || (col == sp_w - 1)) {
-                fwrite(ss.letter + sp_row, sizeof(char), sp_idx - sp_row + 1, stdout);
+                fwrite(ss.letter + letter_idx, sizeof(char), sp_idx - letter_idx + 1, stdout);
 
                 if (changed)
-                    sp_row = sp_idx + 1;
+                    letter_idx = sp_idx + 1;
             }
         }
         curr.bg_color = TR_DEFAULT_COLOR_16;
@@ -627,38 +629,38 @@ void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y) 
         return;
 
     int visible_width = 0;
-    int sprite_x_idx = 0;
-    tr_priv_get_visible(&visible_width, &sprite_x_idx, ctx->width, sprite.width, x);
+    int sp_col = 0;
+    tr_priv_get_visible(&visible_width, &sp_col, ctx->width, sprite.width, x);
     if (visible_width <= 0)
         return;
 
     int visible_height = 0;
-    int sprite_y_idx = 0;
-    tr_priv_get_visible(&visible_height, &sprite_y_idx, ctx->height, sprite.height, y);
+    int sp_row = 0;
+    tr_priv_get_visible(&visible_height, &sp_row, ctx->height, sprite.height, y);
     if (visible_height <= 0)
         return;
 
-    int fb_base = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width;
-    int sp_base = sprite_x_idx + sprite_y_idx * sprite.width;
+    int fb_base = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width; // [y or 0][x or 0]
+    int sp_base = sp_col + sp_row * sprite.width; // [sp_row][sp_col]
 
     for (int row = 0; row < visible_height; row += 1) {
-        int fb_row = fb_base + row * ctx->width;
-        int sp_row = sp_base + row * sprite.width;
+        int fb_row_base = fb_base + row * ctx->width;   // [y + row][x]
+        int sp_row_base = sp_base + row * sprite.width; // [sp_row + row][sp_col]
 
-        memcpy(ctx->back.letter + fb_row, sprite.letter + sp_row, visible_width * sizeof(char));
-        memcpy(ctx->back.effects + fb_row, sprite.effects + sp_row, visible_width * sizeof(TrEffect));
+        memcpy(ctx->back.letter + fb_row_base, sprite.letter + sp_row_base, visible_width * sizeof(char));
+        memcpy(ctx->back.effects + fb_row_base, sprite.effects + sp_row_base, visible_width * sizeof(TrEffect));
 
         for (int col = 0; col < visible_width; col += 1) {
-            int sp_idx = col + sp_row;
+            int sp_idx = col + sp_row_base; // [sp_row + row][sp_col + col]
 
             if (sprite.fg_color[sp_idx] != TR_TRANSPARENT) {
-                int fb_idx = col + fb_row;
+                int fb_idx = col + fb_row; // [y + row][x + col]
 
                 ctx->back.fg_color[fb_idx] = sprite.fg_color[sp_idx];
                 ctx->back.fg_mode[fb_idx] = sprite.fg_color[sp_idx];
             }
             if (sprite.bg_color[sp_idx] != TR_TRANSPARENT) {
-                int fb_idx = col + fb_row;
+                int fb_idx = col + fb_row; // [y + row][x + col]
 
                 ctx->back.bg_color[fb_idx] = sprite.bg_color[sp_idx];
                 ctx->back.bg_mode[fb_idx] = sprite.bg_mode[sp_idx];
@@ -866,15 +868,15 @@ void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, const TrRen
     int right = 0;
     int bottom = 0;
 
-    int fb_ibxy = 0;
     for (int row = 0; row < ctx->height; row += 1) {
-        if (tr_priv_ctx_memcmp(ctx, fb_ibxy, ctx->width)) {
-            fb_ibxy += ctx->width;
+        int fb_row_base = 0 + row * ctx->width; // [row][0]
+
+        if (tr_priv_ctx_memcmp(ctx, fb_row_base, ctx->width))
             continue;
-        }
 
         for (int col = 0; col < ctx->width; col += 1) {
-            int fb_idx = col + fb_ibxy;
+            int fb_idx = col + fb_row_base; // [row][col]
+
             if (tr_priv_ctx_cmp(ctx, fb_idx))
                 continue;
 
