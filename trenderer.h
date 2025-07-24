@@ -519,19 +519,20 @@ void tr_draw_sprite(TrPixelSpan sprite, int x, int y) {
         .bg_mode = TR_COLORS_16,
     };
 
-    int letter_idx = 0;
     for (int row = 0; row < sprite.height; row += 1) {
         tr_move_cursor(x, y + row);
 
+        int letter_idx = 0;
+
         for (int col = 0; col < sprite.width; col += 1) {
-            int i = col + row * sprite.width; // [row][col]
+            int sp_idx = col + row * sprite.width; // [row][col]
             bool changed = false;
 
-            tr_priv_set_ansi(sprite, &curr, &changed, i);
+            tr_priv_set_ansi(sprite, &curr, &changed, sp_idx);
 
             if (changed || (col == sprite.width - 1)) {
-                fwrite(sprite.letter + letter_idx, sizeof(char), i - letter_idx + 1, stdout);
-                letter_idx = i + 1;
+                fwrite(sprite.letter + letter_idx, sizeof(char), sp_idx - letter_idx + 1, stdout);
+                letter_idx = sp_idx + 1;
             }
         }
         curr.bg_color = TR_DEFAULT_COLOR_16;
@@ -544,6 +545,7 @@ void tr_draw_spritesheet(TrPixelSpan ss, int sp_x, int sp_y, int sp_w, int sp_h,
     // spritesheet and position validation
     if (ss.width <= 0 || ss.height <= 0 || x < 0 || y < 0)
         return;
+
     // sprite validation
     if (sp_w <= 0 || sp_h <= 0 ||
         sp_x < 0 || sp_x >= ss.width ||
@@ -588,6 +590,7 @@ void tr_draw_spritesheet(TrPixelSpan ss, int sp_x, int sp_y, int sp_w, int sp_h,
 void tr_draw_text(const char *text, TrStyle style, int x, int y) {
     if (y < 0)
         return;
+
     tr_move_cursor(x, y);
     tr_set_style(style);
     fputs(text, stdout);
@@ -602,6 +605,7 @@ void tr_ctx_init(TrRenderContext *ctx, int width, int height) {
         ctx->height = 0;
         return;
     }
+
     ctx->width = width;
     ctx->height = height;
 
@@ -677,17 +681,18 @@ void tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyl
     if (visible_len <= 0)
         return;
 
-    int fb_idx = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width;
-    memcpy(ctx->back.letter + fb_idx, text + text_idx, visible_len * sizeof(char));
+    int fb_base = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width; // [y or 0][x or 0]
 
-    for (int i = 0; i < visible_len; i += 1) {
-        int fi = i + fb_idx;
+    memcpy(ctx->back.letter + fb_base, text + text_idx, visible_len * sizeof(char));
 
-        ctx->back.effects[fi] = style.effects;
-        ctx->back.fg_color[fi] = style.fg_color;
-        ctx->back.bg_color[fi] = style.bg_color;
-        ctx->back.fg_mode[fi] = style.fg_mode;
-        ctx->back.bg_mode[fi] = style.bg_mode;
+    for (int col = 0; col < visible_len; col += 1) {
+        int fb_idx = col + fb_base; // [y][x + col]
+
+        ctx->back.effects[fb_idx] = style.effects;
+        ctx->back.fg_color[fb_idx] = style.fg_color;
+        ctx->back.bg_color[fb_idx] = style.bg_color;
+        ctx->back.fg_mode[fb_idx] = style.fg_mode;
+        ctx->back.bg_mode[fb_idx] = style.bg_mode;
     }
 }
 // ============================================================================
