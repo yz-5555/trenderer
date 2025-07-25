@@ -20,11 +20,11 @@
  *         #define TRENDERER_IMPLEMENTATION
  *             Create the implmentation of the library. MUST BE DEFINED IN ONE SOURCE FILE BEFORE INCLUDING THE HEADER.
  *
- *         #define TR_PA_LENGTH 64
+ *         #define TR_PIXEL_ARRAY_LENGTH 64
  *             It's the length of `TrPixelArray`. The default value is 64 and you can define other value before you include the header.
  *
  *         #define TR_FRAMEBUFFER_LENGTH 512
- *             It's the length of `TrFrameBufferBase`. The default value is 512 and you can define other value before you include the header.
+ *             It's the length of `TrFramebufferBase`. The default value is 512 and you can define other value before you include the header.
  *
  *         There are no macro functions.
  *
@@ -62,11 +62,11 @@ void tr_reset_all(void);                  // Reset current effects, colors to de
 
 // Colors
 // ============================================================================
-typedef enum TrColorsMode {
-    TR_COLORS_16,
-    TR_COLORS_256,
-    TR_COLORS_TRUE,
-} TrColorsMode;
+typedef enum TrColorMode {
+    TR_COLOR_16,
+    TR_COLOR_256,
+    TR_COLOR_TRUE,
+} TrColorMode;
 void tr_set_fg(uint32_t fg_color, TrColorsMode fg_mode); // Set foreground color of current buffer.
 void tr_set_bg(uint32_t bg_color, TrColorsMode bg_mode); // Set background color of current buffer.
 void tr_reset_fg(void);                                  // Reset foreground color to default value.
@@ -166,8 +166,8 @@ typedef struct TrPixel {
     TrColorsMode fg_mode, bg_mode;
 } TrPixel;
 
-#ifndef TR_PA_LENGTH
-#define TR_PA_LENGTH 64
+#ifndef TR_PIXEL_ARRAY_LENGTH
+#define TR_PIXEL_ARRAY_LENGTH 64
 #endif
 
 typedef struct TrPixelArray { // Array that holds `TrPixel` in amount of `TR_PA_LENGTH` in SoA style.
@@ -430,11 +430,12 @@ void tr_copy_style(TrStyle *dest, TrStyle src) {
 // Pixels
 // ============================================================================
 void tr_parr_init(TrPixelArray *parr, int width, int height) {
-    if (width <= 0 || height <= 0 || width * height > TR_PA_LENGTH) {
+    if (width <= 0 || height <= 0 || (width * height > TR_PA_LENGTH)) {
         parr->width = 0;
         parr->height = 0;
         return;
     }
+
     parr->width = width;
     parr->height = height;
 
@@ -446,10 +447,11 @@ void tr_pvec_init(TrPixelVector *pvec, int width, int height) {
         pvec->height = 0;
         return;
     }
+
     pvec->width = width;
     pvec->height = height;
 
-    size_t l = width * height;
+    size_t len = width * height;
 
     pvec->letter = (char *)malloc(l * sizeof(char));
     if (pvec->letter == NULL)
@@ -761,7 +763,7 @@ TrPixelSpan tr_ftos(const TrFramebufferBase *fb, int width, int height) {
 // Pixel buffer
 // ----------------------------------------------------------------------------
 void tr_clear_buf(TrPixelSpan buf, uint32_t bg_color, TrColorsMode bg_mode) {
-    size_t l = buf.width * buf.height;
+    size_t len = buf.width * buf.height;
 
     memset(buf.letter, ' ', l * sizeof(char));
     memset(buf.effects, TR_DEFAULT_EFFECT, l * sizeof(TrEffect));
@@ -777,24 +779,24 @@ void tr_clear_buf(TrPixelSpan buf, uint32_t bg_color, TrColorsMode bg_mode) {
 
 // Helper functions (private)
 // ============================================================================
-void tr_priv_set_ansi(TrPixelSpan sprite, TrStyle *curr, bool *changed, int i) {
-    if (curr->effects != sprite.effects[i]) {
-        tr_add_effects(sprite.effects[i] & ~curr->effects);
-        tr_remove_effects(curr->effects & ~sprite.effects[i]);
-        curr->effects = sprite.effects[i];
+void tr_priv_set_ansi(TrPixelSpan sprite, TrStyle *curr, bool *changed, int idx) {
+    if (curr->effects != sprite.effects[idx]) {
+        tr_add_effects(sprite.effects[idx] & ~curr->effects);
+        tr_remove_effects(curr->effects & ~sprite.effects[idx]);
+        curr->effects = sprite.effects[idx];
         *changed = true;
     }
 
-    if (curr->fg_color != sprite.fg_color[i] || curr->fg_mode != sprite.fg_mode[i]) {
-        curr->fg_color = sprite.fg_color[i];
-        curr->fg_mode = sprite.fg_mode[i];
+    if (curr->fg_color != sprite.fg_color[idx] || curr->fg_mode != sprite.fg_mode[idx]) {
+        curr->fg_color = sprite.fg_color[idx];
+        curr->fg_mode = sprite.fg_mode[idx];
         tr_set_fg(curr->fg_color, curr->fg_mode);
         *changed = true;
     }
 
-    if (curr->bg_color != sprite.bg_color[i] || curr->bg_mode != sprite.bg_mode[i]) {
-        curr->bg_color = sprite.bg_color[i];
-        curr->bg_mode = sprite.bg_mode[i];
+    if (curr->bg_color != sprite.bg_color[idx] || curr->bg_mode != sprite.bg_mode[idx]) {
+        curr->bg_color = sprite.bg_color[idx];
+        curr->bg_mode = sprite.bg_mode[idx];
         tr_set_bg(curr->bg_color, curr->bg_mode);
         *changed = true;
     }
