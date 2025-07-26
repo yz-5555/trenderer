@@ -26,7 +26,7 @@ int main(void) {
     tr_cursor_visible(false);
 
     while (dino.is_alive) {
-        tr_ctx_clear(&ctx, TR_YELLOW_16, TR_COLORS_16);
+        tr_ctx_clear(&ctx, TR_YELLOW_16, TR_COLOR_16);
 
         update_dino(&dino);
 

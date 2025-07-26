@@ -2,6 +2,7 @@
 
 build-hw.bat
 build-dino.bat
+build-rp.bat
 
 CMakeLists.txt
 CMakePresets.json
