@@ -1,4 +1,4 @@
-#define TRENDERER_IMPLEMENTATION
+// #define TRENDERER_IMPLEMENTATION
 #include "trenderer.h"
 
 #include <conio.h>
@@ -95,10 +95,12 @@ int main(void) {
         }
 
         tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
-
-        draw_color(&ctx, rgb, R, target);
-        draw_color(&ctx, rgb, G, target);
-        draw_color(&ctx, rgb, B, target);
+        {
+            draw_color(&ctx, rgb, R, target);
+            draw_color(&ctx, rgb, G, target);
+            draw_color(&ctx, rgb, B, target);
+            tr_ctx_draw_rect(&ctx, 0, 1, 21, 4, tr_rgb(rgb[R], rgb[G], rgb[B]), TR_COLOR_TRUE);
+        }
 
         tr_ctx_render(&ctx);
     }
