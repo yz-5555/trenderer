@@ -1,5 +1,6 @@
 #define TR_PIXEL_ARRAY_LENGTH 9
 #define TR_FRAMEBUFFER_LENGTH 200
+#define TRENDERER_IMPLEMENTATION
 #include "trenderer.h"
 
 #include <conio.h>
