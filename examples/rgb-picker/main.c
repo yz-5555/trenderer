@@ -1,4 +1,4 @@
-// #define TRENDERER_IMPLEMENTATION
+#define TRENDERER_IMPLEMENTATION
 #include "trenderer.h"
 
 #include <conio.h>
