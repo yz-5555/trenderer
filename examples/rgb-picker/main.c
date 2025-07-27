@@ -101,9 +101,8 @@ int main(void) {
             draw_color(&ctx, rgb, B, target);
             tr_ctx_draw_rect(&ctx, 0, 1, 21, 4, tr_rgb(rgb[R], rgb[G], rgb[B]), TR_COLOR_TRUE);
         }
-
         tr_ctx_render(&ctx);
     }
-
+    
     return 0;
 }
