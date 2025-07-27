@@ -235,20 +235,7 @@ void tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyl
 // ============================================================================
 // Debug
 // ----------------------------------------------------------------------------
-#ifndef TRENDERER_LOG_PATH
-#define TRENDERER_LOG_PATH "./tr-log.txt"
-#endif
-
-#ifdef TRENDERER_DEBUG
-#define TR_DBG(fmt, ...) tr_priv_fprintf("%s(): " fmt "\n", __func__, __VA_ARGS__)
-#else
-#define TR_DBG(fmt, ...) \
-    do {                 \
-    } while (false)
-#endif
-
-void tr_debug_setup(void);
-void tr_debug_log_effects(TrEffect effects); // Print the names of effects.
+void tr_print_effects(TrEffect effects); // Print the names of effects.
 // ----------------------------------------------------------------------------
 
 // Type conversion
@@ -276,7 +263,7 @@ void tr_priv_fprintf(const char *fmt, ...);
 
 #endif // TRENDERER_H
 
-#define TRENDERER_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
+// #define TRENDERER_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
 
 #ifdef TRENDERER_IMPLEMENTATION
 
@@ -707,11 +694,11 @@ void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y) 
     }
 }
 void tr_ctx_draw_spritesheet(TrRenderContext *ctx, TrPixelSpan ss, int sp_x, int sp_y, int sp_w, int sp_h, int x, int y) {
-    // spritesheet validation
+    // Spritesheet validation
     if (ss.width <= 0 || ss.height <= 0)
         return;
 
-    // sprite validation
+    // Sprite validation
     if (sp_w <= 0 || sp_h <= 0 ||
         sp_x < 0 || sp_x >= ss.width ||
         sp_y < 0 || sp_y >= ss.height ||
@@ -750,7 +737,7 @@ void tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyl
 // ============================================================================
 // Debug
 // ----------------------------------------------------------------------------
-void tr_debug_log_effects(TrEffect effects) {
+void tr_print_effects(TrEffect effects) {
     if (effects == TR_DEFAULT_EFFECT) {
         fputs("DEFAULT_EFFECT", stdout);
         return;
@@ -858,7 +845,6 @@ void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int siz
     }
 }
 bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, int len) {
-    // printf("tr_priv_ctx_memcmp: Checking from %d to %d...\n", idx, idx + len - 1);
     if (memcmp(ctx->front.letter + idx, ctx->back.letter + idx, len * sizeof(char)) != 0)
         return false;
 
@@ -870,12 +856,10 @@ bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, int len) {
 
     if (memcmp(ctx->front.bg + idx, ctx->back.bg + idx, len * sizeof(TrColor)) != 0)
         return false;
-
-    // printf("tr_priv_ctx_memcmp: SAME\n");
+    
     return true;
 }
 bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx) {
-    // printf("tr_priv_ctx_cmp: Checking %d...\n", idx);
     if (ctx->front.letter[idx] != ctx->back.letter[idx])
         return false;
 
@@ -894,7 +878,6 @@ bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx) {
     if (ctx->front.bg[idx].mode != ctx->back.bg[idx].mode)
         return false;
 
-    // printf("tr_priv_ctx_cmp: SAME\n");
     return true;
 }
 void tr_priv_ctx_swap(TrRenderContext *ctx) {
@@ -944,8 +927,6 @@ void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, const TrRen
     *y = top;
     *width = right - left + 1;
     *height = bottom - top + 1;
-}
-void tr_priv_fprintf(const char *fmt, ...) {
 }
 // ============================================================================
 
