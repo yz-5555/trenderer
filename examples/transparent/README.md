@@ -1,4 +1,4 @@
 # transparent
 
-![](transparent-example.mp4)
+<video src="transparent-exmaple.mp4" width="320" height="240" controls></video>
 
