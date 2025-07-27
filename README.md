@@ -6,11 +6,10 @@ Another ANSI library for awesome text rendering in your terminal.
   - Cross-platform.
   - Header-only and single-file.
   - Free and open-source.
-  - I don't know if I put hyphens correctly.
-  - Plain C99.
-  - No external dependencies.
+  - I don't know if I'm putting hyphens correctly.
+  - Plain C99, no external dependencies.
   - All color formats (ANSI 16, ANSI 256, True colors) support.
-  - All ANSI effects (e.g. BOLD, ITALIC, UNDERLINE) support.
+  - Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE) support.
   - Optimized rendering using frame buffers.
   - Minimal usage of macros.
   - Made with heart.
@@ -38,5 +37,5 @@ Effects and colors may look different depending on your terminal. Check if yours
 - [ ] documents and comments
 - [ ] z-buffer support
 
-## Thanks to
-Project and code structure inspired by [raygui](https://github.com/raysan5/raygui).
+## Credits
+Library design and code structure inspired by [raylib](https://github.com/raysan5/raylib) and [raygui](https://github.com/raysan5/raygui).
