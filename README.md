@@ -58,6 +58,7 @@ Effects and colors may look different depending on your terminal. Check if yours
 - [ ] debugging functions
 - [ ] documents and comments
 - [ ] z-buffer support
+- [ ] OS specific validations
 
 ## Credits
 Library design and code structure inspired by [raylib](https://github.com/raysan5/raylib), [raygui](https://github.com/raysan5/raygui) and OpenGL.

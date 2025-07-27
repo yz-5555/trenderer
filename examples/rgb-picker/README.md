@@ -1,2 +1,3 @@
 # rgb-picker
-![](rgb-picker-example.mp4)
+
+![rgb-picker](./rgb-picker.gif)
