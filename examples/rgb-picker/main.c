@@ -39,16 +39,16 @@ void draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
         break;
     case G:
         ch = 'G';
-        pos = 7;
+        pos = STR_LEN;
         break;
     case B:
         ch = 'B';
-        pos = 14;
+        pos = STR_LEN * 2;
         break;
     }
 
     char str[STR_LEN];
-    sprintf(str, "%c: %d", ch, rgb[idx]);
+    sprintf(str, "%c: %3d", ch, rgb[idx]);
 
     TrStyle style = {
         .fg = tr_default_color(),
@@ -103,6 +103,6 @@ int main(void) {
         }
         tr_ctx_render(&ctx);
     }
-    
+
     return 0;
 }

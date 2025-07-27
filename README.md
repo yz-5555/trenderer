@@ -25,6 +25,28 @@ before you include `trenderer.h` **one** C or C++ file to create the implmentati
 
 Check the comments in the header for detailed info.
 
+## Basic example
+```c
+#define TRENDERER_IMPLMENTATION
+#include "trenderer.h"
+
+int main(void) {
+    TrRenderContext ctx;
+    tr_ctx_init(&ctx, 50, 10);
+
+    while (true) {
+        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
+
+        // Draw an orange rectangle.
+        tr_ctx_draw_rect(&ctx, 0, 0, 50, 10, TR_ORANGE, TR_COLOR_TRUE);
+
+        tr_ctx_render(&ctx);
+    }
+
+    return 0;
+}
+```
+
 ## Notes
 Effects and colors may look different depending on your terminal. Check if yours support them.
 
@@ -38,4 +60,4 @@ Effects and colors may look different depending on your terminal. Check if yours
 - [ ] z-buffer support
 
 ## Credits
-Library design and code structure inspired by [raylib](https://github.com/raysan5/raylib) and [raygui](https://github.com/raysan5/raygui).
+Library design and code structure inspired by [raylib](https://github.com/raysan5/raylib), [raygui](https://github.com/raysan5/raygui) and OpenGL.

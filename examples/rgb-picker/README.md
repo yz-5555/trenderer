@@ -1,2 +1,2 @@
 # rgb-picker
-put gif here
+![](rgb-picker-example.mp4)
