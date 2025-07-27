@@ -48,7 +48,8 @@ int main(void) {
 ```
 
 ## Notes
-Effects and colors may look different depending on your terminal. Check if yours support them.
+- Effects and colors may look different depending on your terminal. Check if yours support them.
+- Developed and tested on Windows 11 and clang-cl.
 
 ## Limitations
   - No unicodes support.
