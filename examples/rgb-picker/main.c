@@ -10,14 +10,16 @@
 #define B 2
 
 void increase_color(uint8_t *rgb, int target) {
-    rgb[target] += 1;
-    if (rgb[target] > 255)
+    if (rgb[target] == 255)
         rgb[target] = 0;
+    else
+        rgb[target] += 1;
 }
 void decrease_color(uint8_t *rgb, int target) {
-    rgb[target] -= 1;
     if (rgb[target] == 0)
         rgb[target] = 255;
+    else
+        rgb[target] -= 1;
 }
 void increase_target(int *target) {
     *target += 1;
