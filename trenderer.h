@@ -217,7 +217,7 @@ typedef struct TrFramebuffer {
     TrFramebufferBase base;
     int width, height;
 } TrFramebuffer;
-void tr_fb_clear(TrFramebuffer *fb, uint32_t bg_color, TrColorMode bg_mode); // Clear the framebuffer. <UNIMPLEMENTED YET>
+// void tr_fb_clear(TrFramebuffer *fb, uint32_t bg_color, TrColorMode bg_mode); // Clear the framebuffer.
 
 typedef struct TrRenderContext { // Render context for double-buffering. It holds two framebuffers.
     TrFramebufferBase front, back;
@@ -228,8 +228,8 @@ void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color, TrColorMode bg_mode);
 void tr_ctx_render(TrRenderContext *ctx);                                                                                 // Render the result using dirty rectangles.
 void tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color, TrColorMode color_mode); // Draw a rectangle on `back`.
 void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y);                                          // Draw a sprite on `back`.
-void tr_ctx_draw_spritesheet(TrRenderContext *ctx, TrPixelSpan ss, int sp_x, int sp_y, int sp_w, int sp_h, int x, int y); // Draw a sprite from a spritesheet on `back`. <UNIMPLEMENTED YET>
 void tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y);                   // Draw a string on `back`.
+// void tr_ctx_draw_spritesheet(TrRenderContext *ctx, TrPixelSpan ss, int sp_x, int sp_y, int sp_w, int sp_h, int x, int y); // Draw a sprite from a spritesheet on `back`.
 // ============================================================================
 
 // Utility functions
@@ -693,19 +693,6 @@ void tr_ctx_draw_sprite(TrRenderContext *ctx, TrPixelSpan sprite, int x, int y) 
             }
         }
     }
-}
-void tr_ctx_draw_spritesheet(TrRenderContext *ctx, TrPixelSpan ss, int sp_x, int sp_y, int sp_w, int sp_h, int x, int y) {
-    // Spritesheet validation
-    if (ss.width <= 0 || ss.height <= 0)
-        return;
-
-    // Sprite validation
-    if (sp_w <= 0 || sp_h <= 0 ||
-        sp_x < 0 || sp_x >= ss.width ||
-        sp_y < 0 || sp_y >= ss.height ||
-        (sp_x + sp_w > ss.width) ||
-        (sp_y + sp_h > ss.height))
-        return;
 }
 void tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y) {
     if (len <= 0 || y < 0 || y >= ctx->height)
