@@ -7,7 +7,7 @@
 
 /* ============================================================================
  *
- * trenderer v0.1.0
+ * trenderer v0.1.1
  *     NOTES:
  *         It's a header-only, single file library. Which means, declaration and definition of functions are both inside this file.
  *         They are completely separated with TRENDERER_IMPLEMENTATION. There are no inline functions for coherent structure.
