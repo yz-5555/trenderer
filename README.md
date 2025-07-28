@@ -26,6 +26,30 @@ before you include `trenderer.h` **one** C or C++ file to create the implmentati
 Check the comments in the header for detailed info.
 
 ## Basic example
+#### Easy and simple ANSI style usage
+```c
+#define TRENDERER_IMPLEMENTATION
+#include "trenderer.h"
+
+#include <stdio.h>
+
+int main(void) {
+    tr_add_effects(TR_UNDERLINE | TR_BOLD);      // Add effects.
+    tr_set_fg(tr_rgb(255, 0, 0), TR_COLOR_TRUE); // Set foreground color to red using rgb (True colors)
+    tr_set_bg(TR_BLUE_256, TR_COLOR_256);        // Set background color to blue using ANSI 256.
+    printf("Hello, ");
+
+    tr_remove_effects(TR_UNDERLINE);            // Remove effects.
+    tr_add_effects(TR_BLINK);
+    tr_set_bg(TR_BRIGHT_GREEN_16, TR_COLOR_16); // Set background color to bright green using ANSI 16.
+    printf("World!");
+
+    tr_reset_all(); // Reset effects, fg, bg to default.
+
+    return 0;
+}
+```
+#### Optimized rendering for games and apps. (Double-buffering)
 ```c
 #define TRENDERER_IMPLEMENTATION
 #include "trenderer.h"
@@ -46,6 +70,7 @@ int main(void) {
     return 0;
 }
 ```
+More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/examples)
 
 ## Notes
 - Effects and colors may look different depending on your terminal. Check if yours support them.
