@@ -1,18 +1,18 @@
 # trenderer
-Another ANSI library for awesome text rendering in your terminal.
+Header-only ANSI library for drawing your idea in your terminal easily.
 
 ## Features
-  - Beginner-friendly.
-  - Cross-platform.
-  - Header-only and single-file.
-  - Free and open-source.
-  - I don't know if I'm putting hyphens correctly.
-  - Plain C99, no external dependencies.
-  - All color formats (ANSI 16, ANSI 256, True colors) support.
-  - Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE) support.
-  - Optimized rendering using frame buffers.
-  - Minimal usage of macros.
-  - Made with heart.
+- **Beginner-friendly.**
+- Cross-platform.
+- Header-only and single-file.
+- Free and open-source.
+- I don't know if I'm putting hyphens correctly.
+- Plain C99, no external dependencies.
+- All color formats (ANSI 16, ANSI 256, True colors) support.
+- Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE) support.
+- Optimized rendering using frame buffers.
+- Minimal usage of macros.
+- Made with heart.
 
 ## Installation & Usage
 Just add `trenderer.h` to your project and it's good to go.
@@ -26,7 +26,7 @@ before you include `trenderer.h` **one** C or C++ file to create the implmentati
 Check the comments in the header for detailed info.
 
 ## Basic example
-#### Easy and simple ANSI style usage
+### Easy and simple ANSI usage
 ```c
 #define TRENDERER_IMPLEMENTATION
 #include "trenderer.h"
@@ -49,7 +49,7 @@ int main(void) {
     return 0;
 }
 ```
-#### Optimized rendering for games and apps. (Double-buffering)
+### Optimized rendering for games and apps. (Double-buffering)
 ```c
 #define TRENDERER_IMPLEMENTATION
 #include "trenderer.h"
@@ -59,10 +59,10 @@ int main(void) {
     tr_ctx_init(&ctx, 50, 10);
 
     while (true) {
-        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
+        tr_ctx_clear(&ctx, TR_WHITE, TR_COLOR_16);
 
-        // Draw an orange rectangle.
-        tr_ctx_draw_rect(&ctx, 0, 0, 50, 10, TR_ORANGE, TR_COLOR_TRUE);
+        // Draw an orange rect in the middle.
+        tr_ctx_draw_rect(&ctx, 20, 3, 30, 4, TR_ORANGE, TR_COLOR_TRUE);
 
         tr_ctx_render(&ctx);
     }
@@ -74,17 +74,27 @@ More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/exa
 
 ## Notes
 - Effects and colors may look different depending on your terminal. Check if yours support them.
-- Developed and tested on Windows 11 and clang-cl.
+- Developed and tested on [wezterm](https://github.com/wezterm/wezterm), Windows 11 and clang-cl.
 
 ## Limitations
-  - No unicodes support.
-  - No z-buffer support.
+- No unicodes support.
+- No z-buffer support.
+- No image support.
+- No complex OS specific window handling.
 
 ## Todo
 - [ ] debugging functions
 - [ ] documents and comments
 - [ ] z-buffer support
 - [ ] OS specific validations
+
+## Design goals
+#### 1. Minimal abstraction
+It's explicit, straightforward. No hidden logic or global variables. Only necessary macros and typedefs.
+#### 2. Your library
+It's under your control. It does not force you the way how you code. You can modify constants by defining them before including it.
+#### 3. No need to learn
+It's designed to be easy to understand and make you focus on your own project rather than understanding mine. (At least I tried to)
 
 ## Credits
 Library design and code structure inspired by [raylib](https://github.com/raysan5/raylib), [raygui](https://github.com/raysan5/raygui) and OpenGL.
