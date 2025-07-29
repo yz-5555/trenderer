@@ -89,11 +89,16 @@ More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/exa
 - [ ] OS specific validations
 
 ## Design goals
-#### 1. Minimal abstraction
+**1. Minimal abstraction**
+
 It's explicit, straightforward. No hidden logic or global variables. Only necessary macros and typedefs.
-#### 2. Your library
+
+**2. Your library**
+
 It's under your control. It does not force you the way how you code. You can modify constants by defining them before including it.
-#### 3. No need to learn
+
+**3. No need to learn**
+
 It's designed to be easy to understand and make you focus on your own project rather than understanding mine. (At least I tried to)
 
 ## Credits
