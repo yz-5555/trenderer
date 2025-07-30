@@ -1,4 +1,4 @@
- trenderer
+# trenderer
 Header-only ANSI library for drawing your idea in your terminal easily.
 
 ## Features
