@@ -1,4 +1,4 @@
-# trenderer
+ trenderer
 Header-only ANSI library for drawing your idea in your terminal easily.
 
 ## Features
@@ -58,11 +58,11 @@ int main(void) {
     TrRenderContext ctx;
     tr_ctx_init(&ctx, 50, 10);
 
-    while (true) {
+    while (1) {
         tr_ctx_clear(&ctx, TR_WHITE_16, TR_COLOR_16);
 
         // Draw an orange rect in the middle.
-        tr_ctx_draw_rect(&ctx, 20, 3, 30, 4, TR_ORANGE, TR_COLOR_TRUE);
+        tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE, TR_COLOR_TRUE);
 
         tr_ctx_render(&ctx);
     }
