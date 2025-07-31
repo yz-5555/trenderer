@@ -74,6 +74,7 @@ More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/exa
 
 ## Notes
 - Effects and colors may look different depending on your terminal. Check if yours support them.
+- This is not a TUI library, it does not have widgets.
 - Developed and tested on [wezterm](https://github.com/wezterm/wezterm), Windows 11 and clang-cl.
 
 ## Limitations
