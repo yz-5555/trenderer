@@ -85,6 +85,7 @@ More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/exa
 ## Todo
 - [ ] debugging functions
 - [ ] documents and comments
+- [ ] unicodes supoort
 - [ ] z-buffer support
 - [ ] OS specific validations
 
