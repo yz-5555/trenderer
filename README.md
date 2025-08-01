@@ -84,9 +84,10 @@ More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/exa
 - No complex OS specific window handling.
 
 ## Todo
-- [ ] debugging functions
+- [ ] error handling and loggers
 - [ ] documents and comments
-- [ ] unicodes supoort
+- [ ] keycodes
+- [ ] unicodes supoort and optmization (less system function calls)
 - [ ] z-buffer support
 - [ ] OS specific validations
 
