@@ -1,11 +1,11 @@
-#define TR_PIXEL_ARRAY_LENGTH 9
+#define TR_CELL_ARRAY_LENGTH 9
 #define TR_FRAMEBUFFER_LENGTH 200
 #define TRENDERER_IMPLEMENTATION
 #include "trenderer.h"
 
 #include <conio.h>
 
-void fill_box(TrPixelArray *box) {
+void fill_box(TrCellArray *box) {
     for (int i = 0; i < box->width * box->height; i += 1) {
         box->letter[i] = 'o';
         box->effects[i] = TR_BOLD | TR_ITALIC | TR_UNDERLINE | TR_STRIKETHROUGH;
@@ -15,8 +15,8 @@ void fill_box(TrPixelArray *box) {
 }
 
 int main(void) {
-    TrPixelArray box;
-    tr_parr_init(&box, 3, 3);
+    TrCellArray box;
+    tr_carr_init(&box, 3, 3);
     fill_box(&box);
 
     bool alive = true;
@@ -24,10 +24,10 @@ int main(void) {
     int pos_y = 0;
 
     TrRenderContext ctx;
-    tr_ctx_init(&ctx, 20, 10);
+    tr_ctx_init(&ctx, 0, 0, 20, 10);
 
     tr_clear();
-    tr_cursor_visible(false);
+    tr_hide_cursor();
     while (alive) {
         char key = 0;
         if (_kbhit())

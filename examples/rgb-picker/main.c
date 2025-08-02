@@ -69,10 +69,10 @@ int main(void) {
     int target = 0;
 
     TrRenderContext ctx;
-    tr_ctx_init(&ctx, 21, 5);
+    tr_ctx_init(&ctx, 0, 0, 21, 5);
 
     tr_clear();
-    tr_cursor_visible(false);
+    tr_hide_cursor();
     while (alive) {
         int key = 0;
         if (_kbhit())
@@ -91,7 +91,7 @@ int main(void) {
         case 'd':
             increase_target(&target);
             break;
-        case 27: // esc
+        case 27:
             alive = false;
             break;
         }
