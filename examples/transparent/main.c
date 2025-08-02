@@ -36,19 +36,14 @@ int main(void) {
         switch (key) {
         case 'w':
             pos_y -= 1;
-            break;
         case 'a':
             pos_x -= 1;
-            break;
         case 's':
             pos_y += 1;
-            break;
         case 'd':
             pos_x += 1;
-            break;
         case 27:
             alive = false;
-            break;
         }
 
         tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
