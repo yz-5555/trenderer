@@ -9,6 +9,12 @@
 #define G 1
 #define B 2
 
+#define MY_CHK(x)       \
+    do {                \
+        if (x != TR_OK) \
+            break;      \
+    } while (0)
+
 void increase_color(uint8_t *rgb, int target) {
     if (rgb[target] == 255)
         rgb[target] = 0;
@@ -31,7 +37,7 @@ void decrease_target(int *target) {
     if (*target < 0)
         *target = 2;
 }
-bool draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
+TrResult draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
     char ch = '\0';
     int pos = 0;
     switch (idx) {
@@ -61,7 +67,7 @@ bool draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
     else
         style.effects = TR_DEFAULT_EFFECT;
 
-    return (tr_ctx_draw_text(ctx, str, STR_LEN, style, pos, 0) == TR_OK);
+    return tr_ctx_draw_text(ctx, str, STR_LEN, style, pos, 0);
 }
 int main(void) {
     bool alive = true;
@@ -74,16 +80,6 @@ int main(void) {
     tr_open_alt();
     tr_hide_cursor();
     while (alive) {
-        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
-
-        alive = draw_color(&ctx, rgb, R, target);
-        alive = draw_color(&ctx, rgb, G, target);
-        alive = draw_color(&ctx, rgb, B, target);
-
-        alive = (tr_ctx_draw_rect(&ctx, 0, 1, 21, 4, tr_rgb(rgb[R], rgb[G], rgb[B]), TR_COLOR_TRUE) == TR_OK);
-
-        alive = (tr_ctx_render(&ctx) == TR_OK);
-
         int key = 0;
         if (_kbhit())
             key = _getch();
@@ -105,6 +101,16 @@ int main(void) {
             alive = false;
             break;
         }
+
+        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
+
+        MY_CHK(draw_color(&ctx, rgb, R, target));
+        MY_CHK(draw_color(&ctx, rgb, G, target));
+        MY_CHK(draw_color(&ctx, rgb, B, target));
+
+        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 1, 21, 4, tr_rgb(rgb[R], rgb[G], rgb[B]), TR_COLOR_TRUE));
+
+        MY_CHK(tr_ctx_render(&ctx));
     }
     tr_close_alt();
 

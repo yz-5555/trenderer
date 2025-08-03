@@ -5,6 +5,12 @@
 
 #include <conio.h>
 
+#define MY_CHK(x)       \
+    do {                \
+        if (x != TR_OK) \
+            break;      \
+    } while (0)
+
 void fill_box(TrCellArray *box) {
     for (int i = 0; i < box->width * box->height; i += 1) {
         box->letter[i] = 'o';
@@ -31,14 +37,14 @@ int main(void) {
     while (alive) {
         tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
 
-        alive = (tr_ctx_draw_rect(&ctx, 0, 0, 10, 5, TR_RED_16, TR_COLOR_16) == TR_OK);
-        alive = (tr_ctx_draw_rect(&ctx, 10, 0, 10, 5, TR_ORANGE, TR_COLOR_TRUE) == TR_OK);
-        alive = (tr_ctx_draw_rect(&ctx, 0, 5, 10, 5, TR_BRIGHT_CYAN_256, TR_COLOR_256) == TR_OK);
-        alive = (tr_ctx_draw_rect(&ctx, 10, 5, 10, 5, TR_WHITE_16, TR_COLOR_16) == TR_OK);
+        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 0, 10, 5, TR_RED_16, TR_COLOR_16));
+        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 0, 10, 5, TR_ORANGE, TR_COLOR_TRUE));
+        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 5, 10, 5, TR_BRIGHT_CYAN_256, TR_COLOR_256));
+        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 5, 10, 5, TR_WHITE_16, TR_COLOR_16));
 
-        alive = (tr_ctx_draw_sprite(&ctx, tr_atos(&box), pos_x, pos_y) == TR_OK);
+        MY_CHK(tr_ctx_draw_sprite(&ctx, tr_atos(&box), pos_x, pos_y));
 
-        alive = (tr_ctx_render(&ctx) == TR_OK);
+        MY_CHK(tr_ctx_render(&ctx));
 
         char key = 0;
         if (_kbhit())
