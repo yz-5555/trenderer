@@ -9,8 +9,8 @@ Header-only ANSI library for drawing your idea in your terminal easily.
 - I don't know if I'm putting hyphens correctly.
 - Plain C99, no external dependencies.
 - All color formats (ANSI 16, ANSI 256, True colors) support.
-- Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE) support.
-- Optimized rendering using frame buffers.
+- Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE, ...) support.
+- Optimized rendering using framebuffer.
 - Minimal usage of macros.
 - Made with heart.
 
@@ -84,12 +84,10 @@ More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/exa
 - No complex OS specific window handling.
 
 ## Todo
-- [ ] error handling and loggers
-- [ ] documents and comments
-- [ ] keycodes
-- [ ] unicodes supoort and optmization (less system function calls)
-- [ ] z-buffer support
-- [ ] OS specific validations
+- [ ] documents and comments.
+- [ ] unicodes supoort.
+- [ ] z-buffer support.
+- [ ] OS specific validations.
 
 ## Design goals
 **1. Minimal abstraction**

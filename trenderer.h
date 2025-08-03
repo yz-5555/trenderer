@@ -739,7 +739,6 @@ TrResult tr_draw_sprite(TrCellSpan sprite, int x, int y) {
             TR_CHK(tr_buf_set_bg(raw_buf, &idx, TR_RAW_BUFFER_LENGTH, curr.bg.code, curr.bg.mode));
         }
     }
-
     if (idx >= TR_RAW_BUFFER_LENGTH - 1)
         return TR_ERR_BUF_OVERFLOW;
 
@@ -793,7 +792,6 @@ TrResult tr_draw_spritesheet(TrCellSpan ss, int sp_x, int sp_y, int sp_w, int sp
             TR_CHK(tr_buf_set_bg(raw_buf, &idx, TR_RAW_BUFFER_LENGTH, curr.bg.code, curr.bg.mode));
         }
     }
-
     if (idx >= TR_RAW_BUFFER_LENGTH - 1)
         return TR_ERR_BUF_OVERFLOW;
 
@@ -817,9 +815,8 @@ TrResult tr_draw_text(const char *text, TrStyle style, int x, int y) {
     TR_CHK(tr_buf_set_bg(raw_buf, &idx, TR_RAW_BUFFER_LENGTH, style.bg.code, style.bg.mode));
 
     idx += snprintf(raw_buf + idx, TR_RAW_BUFFER_LENGTH - idx, "%s", text);
-    if (idx >= TR_RAW_BUFFER_LENGTH - 1) {
+    if (idx >= TR_RAW_BUFFER_LENGTH - 1)
         return TR_ERR_BUF_OVERFLOW;
-    }
 
     raw_buf[idx] = '\0';
     fputs(raw_buf, stdout);
