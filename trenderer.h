@@ -275,7 +275,7 @@ void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode); // Cl
 
 // Helper functions (private)
 // ============================================================================
-void tr_priv_set_ansi(char *buf, int *idx, size_t len, TrStyle *curr, TrCellSpan sprite, int sp_idx);
+TrResult tr_priv_set_ansi(char *buf, int *idx, size_t len, TrStyle *curr, TrCellSpan sprite, int sp_idx);
 void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos);
 bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, int len);
 bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx);
@@ -535,16 +535,18 @@ void tr_cvec_cleanup(TrCellVector *cvec) {
 // Cursor
 // ----------------------------------------------------------------------------
 #define TR_PRIV_APPEND(str, ...) (*idx += snprintf(buf + (*idx), len - (*idx), str, __VA_ARGS__));
-#define TR_PRIV_CHECK_OOB(idx)           \
+#define RETURN_IF_OOB()                  \
     do {                                 \
-        if ((idx) >= len) {              \
-            (idx) = len - 1;             \
+        if (*idx >= len) {               \
+            *idx = len - 1;              \
             return TR_ERR_OUT_OF_BOUNDS; \
         }                                \
     } while (0)
 
 TrResult tr_buf_move_cursor(char *buf, int *idx, size_t len, int x, int y) {
     TR_PRIV_APPEND("\x1b[%d;%dH", y + 1, x + 1);
+    RETURN_IF_OOB();
+
     return TR_OK;
 }
 // ----------------------------------------------------------------------------
@@ -558,34 +560,42 @@ TrResult tr_buf_add_effects(char *buf, int *idx, size_t len, TrEffect effects) {
     }
     if (effects & TR_BOLD) {
         TR_PRIV_APPEND("\x1b[1m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_DIM) {
         TR_PRIV_APPEND("\x1b[2m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_ITALIC) {
         TR_PRIV_APPEND("\x1b[3m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_UNDERLINE) {
         TR_PRIV_APPEND("\x1b[4m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_BLINK) {
         TR_PRIV_APPEND("\x1b[5m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_INVERT) {
         TR_PRIV_APPEND("\x1b[7m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_INVISIBLE) {
         TR_PRIV_APPEND("\x1b[8m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_STRIKETHROUGH) {
         TR_PRIV_APPEND("\x1b[9m");
+        RETURN_IF_OOB();
     }
 
     return TR_OK;
@@ -593,36 +603,44 @@ TrResult tr_buf_add_effects(char *buf, int *idx, size_t len, TrEffect effects) {
 TrResult tr_buf_remove_effects(char *buf, int *idx, size_t len, TrEffect effects) {
     if (effects & TR_BOLD || effects & TR_DIM) {
         TR_PRIV_APPEND("\x1b[22m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_ITALIC) {
         TR_PRIV_APPEND("\x1b[23m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_UNDERLINE) {
         TR_PRIV_APPEND("\x1b[24m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_BLINK) {
         TR_PRIV_APPEND("\x1b[25m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_INVERT) {
         TR_PRIV_APPEND("\x1b[27m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_INVISIBLE) {
         TR_PRIV_APPEND("\x1b[28m");
+        RETURN_IF_OOB();
     }
 
     if (effects & TR_STRIKETHROUGH) {
         TR_PRIV_APPEND("\x1b[29m");
+        RETURN_IF_OOB();
     }
 
     return TR_OK;
 }
 TrResult tr_buf_reset_effects(char *buf, int *idx, size_t len) {
     TR_PRIV_APPEND("\x1b[22;23;24;25;27;28;29m");
+    RETURN_IF_OOB();
 
     return TR_OK;
 }
@@ -637,12 +655,15 @@ TrResult tr_buf_set_fg(char *buf, int *idx, size_t len, uint32_t fg_color, TrCol
     switch (fg_mode) {
     case TR_COLOR_16:
         TR_PRIV_APPEND("\x1b[%dm", fg_color);
+        RETURN_IF_OOB();
         break;
     case TR_COLOR_256:
         TR_PRIV_APPEND("\x1b[38;5;%dm", fg_color);
+        RETURN_IF_OOB();
         break;
     case TR_COLOR_TRUE:
         TR_PRIV_APPEND("\x1b[38;2;%d;%d;%dm", tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
+        RETURN_IF_OOB();
         break;
     }
 
@@ -655,12 +676,15 @@ TrResult tr_buf_set_bg(char *buf, int *idx, size_t len, uint32_t bg_color, TrCol
     switch (bg_mode) {
     case TR_COLOR_16:
         TR_PRIV_APPEND("\x1b[%dm", 10 + bg_color);
+        RETURN_IF_OOB();
         break;
     case TR_COLOR_256:
         TR_PRIV_APPEND("\x1b[48;5;%dm", bg_color);
+        RETURN_IF_OOB();
         break;
     case TR_COLOR_TRUE:
         TR_PRIV_APPEND("\x1b[48;2;%d;%d;%dm", tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
+        RETURN_IF_OOB();
         break;
     }
 
@@ -678,23 +702,29 @@ TrResult tr_draw_sprite(TrCellSpan sprite, int x, int y) {
         .bg.code = TR_DEFAULT_COLOR_16,
         .bg.mode = TR_COLOR_16,
     };
-
     int idx = 0;
-    char raw_buf[TR_RAW_BUFFER_LENGTH];
+    char buf[TR_RAW_BUFFER_LENGTH];
+    TrResult res = TR_OK;
+
     for (int row = 0; row < sprite.height; row += 1) {
-        tr_move_cursor(x, y + row);
+        if ((res = tr_buf_move_cursor(buf, &idx, TR_RAW_BUFFER_LENGTH, x, y + row)) != TR_OK)
+            return res;
 
         for (int col = 0; col < sprite.width; col += 1) {
             int sp_idx = col + row * sprite.width; // [sp_idx] == [row][col]
 
-            // tr_priv_set_ansi(sprite, &curr, sp_idx);
+            if ((res = tr_priv_set_ansi(buf, &idx, TR_RAW_BUFFER_LENGTH, &curr, sprite, sp_idx)) != TR_OK)
+                return res;
 
-            putchar(sprite.letter[sp_idx]);
+            buf[idx] = sprite.letter[sp_idx];
+            idx += 1;
         }
         curr.bg.code = TR_DEFAULT_COLOR_16;
         curr.bg.mode = TR_COLOR_16;
-        tr_set_bg(curr.bg.code, curr.bg.mode);
+        if ((res = tr_buf_set_bg(buf, &idx, TR_RAW_BUFFER_LENGTH, curr.bg.code, curr.bg.mode)) != TR_OK)
+            return res;
     }
+    fputs(buf, stdout);
     tr_reset_all();
 
     return TR_OK;
@@ -721,17 +751,20 @@ TrResult tr_draw_spritesheet(TrCellSpan ss, int sp_x, int sp_y, int sp_w, int sp
     };
     int idx = 0;
     char buf[TR_RAW_BUFFER_LENGTH];
+    TrResult res = TR_OK;
 
     for (int row = 0; row < sp_h; row += 1) {
         // tr_move_cursor(x, y + row);
-		tr_buf_move_cursor(buf, &idx, TR_RAW_BUFFER_LENGTH, x, y + row);
+        if ((res = tr_buf_move_cursor(buf, &idx, TR_RAW_BUFFER_LENGTH, x, y + row)) != TR_OK)
+            return res;
 
         int sp_row_base = sp_x + (sp_y + row) * ss.width; // [sp_row_base] == [sp_y + row][sp_x]
 
         for (int col = 0; col < sp_w; col += 1) {
             int sp_idx = col + sp_row_base; // [sp_idx] == [sp_y + row][sp_x + col]
 
-            tr_priv_set_ansi(buf, &idx, TR_RAW_BUFFER_LENGTH, &curr, ss, sp_idx);
+            if ((res = tr_priv_set_ansi(buf, &idx, TR_RAW_BUFFER_LENGTH, &curr, ss, sp_idx)) != TR_OK)
+                return res;
 
             // putchar(ss.letter[sp_idx]);
             buf[idx] = ss.letter[sp_idx];
@@ -739,7 +772,8 @@ TrResult tr_draw_spritesheet(TrCellSpan ss, int sp_x, int sp_y, int sp_w, int sp
         }
         curr.bg.code = TR_DEFAULT_COLOR_16;
         curr.bg.mode = TR_COLOR_16;
-        tr_buf_set_bg(buf, &idx, TR_RAW_BUFFER_LENGTH, curr.bg.code, curr.bg.mode);
+        if ((res = tr_buf_set_bg(buf, &idx, TR_RAW_BUFFER_LENGTH, curr.bg.code, curr.bg.mode)) != TR_OK)
+            return res;
     }
     fputs(buf, stdout);
     tr_reset_all();
@@ -747,12 +781,35 @@ TrResult tr_draw_spritesheet(TrCellSpan ss, int sp_x, int sp_y, int sp_w, int sp
     return TR_OK;
 }
 TrResult tr_draw_text(const char *text, TrStyle style, int x, int y) {
-    if (y < 0)
+    if (!text || y < 0)
         return TR_ERR_BAD_ARG;
 
-    tr_move_cursor(x, y);
-    tr_set_style(style);
-    fputs(text, stdout);
+    int idx = 0;
+    char buf[TR_RAW_BUFFER_LENGTH];
+    TrResult res = TR_OK;
+
+    if ((res = tr_buf_move_cursor(buf, &idx, TR_RAW_BUFFER_LENGTH, x, y)) != TR_OK)
+        return res;
+
+    if ((res = tr_buf_reset_effects(buf, &idx, TR_RAW_BUFFER_LENGTH)) != TR_OK)
+        return res;
+
+    if ((res = tr_buf_add_effects(buf, &idx, TR_RAW_BUFFER_LENGTH, style.effects)) != TR_OK)
+        return res;
+
+    if ((res = tr_buf_set_fg(buf, &idx, TR_RAW_BUFFER_LENGTH, style.fg.code, style.fg.mode)) != TR_OK)
+        return res;
+
+    if ((res = tr_buf_set_bg(buf, &idx, TR_RAW_BUFFER_LENGTH, style.bg.code, style.bg.mode)) != TR_OK)
+        return res;
+
+    idx += snprintf(buf + idx, TR_RAW_BUFFER_LENGTH - idx, "%s", text);
+    if (idx >= TR_RAW_BUFFER_LENGTH) {
+        idx = TR_RAW_BUFFER_LENGTH - 1;
+        return TR_ERR_OUT_OF_BOUNDS;
+    }
+
+    fputs(buf, stdout);
 
     return TR_OK;
 }
@@ -986,24 +1043,34 @@ void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode) {
 
 // Helper functions (private)
 // ============================================================================
-void tr_priv_set_ansi(char *buf, int *idx, size_t len, TrStyle *curr, TrCellSpan sprite, int sp_idx) {
+TrResult tr_priv_set_ansi(char *buf, int *idx, size_t len, TrStyle *curr, TrCellSpan sprite, int sp_idx) {
+    TrResult res = TR_OK;
+
     if (curr->effects != sprite.effects[sp_idx]) {
-        tr_buf_add_effects(buf, idx, len, sprite.effects[sp_idx] & ~curr->effects);
-        tr_buf_remove_effects(buf, idx, len, curr->effects & ~sprite.effects[sp_idx]);
+        if ((res = tr_buf_add_effects(buf, idx, len, sprite.effects[sp_idx] & ~curr->effects)) != TR_OK)
+            return res;
+
+        if ((res = tr_buf_remove_effects(buf, idx, len, curr->effects & ~sprite.effects[sp_idx])) != TR_OK)
+            return res;
+
         curr->effects = sprite.effects[sp_idx];
     }
 
     if (curr->fg.code != sprite.fg[sp_idx].code || curr->fg.mode != sprite.fg[sp_idx].mode) {
         curr->fg.code = sprite.fg[sp_idx].code;
         curr->fg.mode = sprite.fg[sp_idx].mode;
-        tr_buf_set_fg(buf, idx, len, curr->fg.code, curr->fg.mode);
+        if ((res = tr_buf_set_fg(buf, idx, len, curr->fg.code, curr->fg.mode)) != TR_OK)
+            return res;
     }
 
     if (curr->bg.code != sprite.bg[sp_idx].code || curr->bg.mode != sprite.bg[sp_idx].mode) {
         curr->bg.code = sprite.bg[sp_idx].code;
         curr->bg.mode = sprite.bg[sp_idx].mode;
-        tr_buf_set_bg(buf, idx, len, curr->bg.code, curr->bg.mode);
+        if ((res = tr_buf_set_bg(buf, idx, len, curr->bg.code, curr->bg.mode)) != TR_OK)
+            return res;
     }
+
+    return TR_OK;
 }
 void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos) {
     if (pos >= 0) {
