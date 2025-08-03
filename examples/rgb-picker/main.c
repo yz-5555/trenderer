@@ -71,7 +71,7 @@ int main(void) {
     TrRenderContext ctx;
     tr_ctx_init(&ctx, 0, 0, 21, 5);
 
-    tr_clear();
+    tr_open_alt();
     tr_hide_cursor();
     while (alive) {
         int key = 0;
@@ -105,6 +105,7 @@ int main(void) {
 
         tr_ctx_render(&ctx);
     }
+    tr_close_alt();
 
     return 0;
 }
