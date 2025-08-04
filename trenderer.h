@@ -7,7 +7,7 @@
 
 /* ============================================================================
  *
- * trenderer v0.1.1
+ * trenderer v0.2.0
  *     NOTES:
  *         It's a header-only, single file library. Which means, declaration and definition of functions are both inside this file.
  *         They are completely separated with TRENDERER_IMPLEMENTATION. There are no inline functions for coherent structure.
@@ -89,7 +89,7 @@ uint8_t tr_rgb_g(uint32_t rgb);                   // Get 'g' of a rgb value.
 uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
 // ----------------------------------------------------------------------------
 
-// Color - Constants - ANSI 16 colors
+// Color - Constants - ANSI 16
 // ----------------------------------------------------------------------------
 #define TR_BLACK_16 30
 #define TR_RED_16 31
@@ -112,7 +112,7 @@ uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
 #define TR_DEFAULT_COLOR_16 39
 // ----------------------------------------------------------------------------
 
-// Color - Constants - ANSI 256 colors
+// Color - Constants - ANSI 256
 // ----------------------------------------------------------------------------
 #define TR_BLACK_256 0
 #define TR_RED_256 1
@@ -133,7 +133,7 @@ uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
 #define TR_BRIGHT_WHITE_256 15
 // ----------------------------------------------------------------------------
 
-// Color - Constants - True colors
+// Color - Constants - True color
 // ----------------------------------------------------------------------------
 #define TR_BLACK tr_rgb(0, 0, 0)
 #define TR_RED tr_rgb(255, 0, 0)

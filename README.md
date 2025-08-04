@@ -84,7 +84,8 @@ More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/exa
 - No complex OS specific window handling.
 
 ## Todo
-- [ ] documents and comments.
+- [ ] improved documents and comments.
+- [ ] More demos
 - [ ] unicodes supoort.
 - [ ] z-buffer support.
 - [ ] OS specific validations.
