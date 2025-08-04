@@ -298,7 +298,7 @@ void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, const TrRen
 
 #endif // TRENDERER_H
 
-#define TRENDERER_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
+// #define TRENDERER_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
 
 #ifdef TRENDERER_IMPLEMENTATION
 
