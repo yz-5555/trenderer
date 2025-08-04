@@ -27,7 +27,8 @@
  *         #define TR_FRAMEBUFFER_LENGTH 512
  *             The length of `TrFramebufferBase`. The default value is 512 and you can define other value before you include the header.
  *
- *         There are no macro functions.
+ *         #define TR_RAW_BUFFER_LENGTH 2048
+ *             The length of a buffer that stores all data including ANSI escape codes and characters, etc. The default value is 2048 and you can define other value before you include the header.
  *
  * ==========================================================================*/
 
@@ -167,6 +168,8 @@ typedef enum TrResult {
         if ((_r = x) != TR_OK) \
             return _r;         \
     } while (0)
+
+#define TR_FAILED(x) (x != TR_OK)
 
 void tr_print_effects(TrEffect effects); // Print the names of effects.
 // ============================================================================
@@ -551,6 +554,7 @@ void tr_cvec_cleanup(TrCellVector *cvec) {
 // Cursor
 // ----------------------------------------------------------------------------
 #define TR_PRIV_APPEND(str, ...) (*idx += snprintf(buf + (*idx), len - (*idx), str, __VA_ARGS__));
+
 #define TR_PRIV_CHK_BO(idx, len)        \
     do {                                \
         if ((idx) >= (len - 1)) {       \
