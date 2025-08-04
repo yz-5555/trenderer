@@ -11,6 +11,7 @@ Header-only ANSI library for drawing your idea in your terminal easily.
 - All color formats (ANSI 16, ANSI 256, True colors) support.
 - Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE, ...) support.
 - Optimized rendering using framebuffer.
+- Easy error handling.
 - Minimal usage of macros.
 - Made with heart.
 
