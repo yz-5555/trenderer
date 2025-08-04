@@ -8,7 +8,7 @@ Header-only ANSI library for drawing your idea in your terminal easily.
 - Free and open-source.
 - I don't know if I'm putting hyphens correctly.
 - Plain C99, no external dependencies.
-- All color formats (ANSI 16, ANSI 256, True colors) support.
+- All color formats (ANSI 16, ANSI 256, True color) support.
 - Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE, ...) support.
 - Optimized rendering using framebuffer.
 - Easy error handling.
