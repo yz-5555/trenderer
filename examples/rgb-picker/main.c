@@ -9,10 +9,10 @@
 #define G 1
 #define B 2
 
-#define MY_CHK(x)       \
-    do {                \
-        if (x != TR_OK) \
-            break;      \
+#define MY_CHK(x)          \
+    do {                   \
+        if (TR_FAILED(x))  \
+            alive = false; \
     } while (0)
 
 void increase_color(uint8_t *rgb, int target) {
@@ -80,6 +80,16 @@ int main(void) {
     tr_open_alt();
     tr_hide_cursor();
     while (alive) {
+        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
+
+        MY_CHK(draw_color(&ctx, rgb, R, target));
+        MY_CHK(draw_color(&ctx, rgb, G, target));
+        MY_CHK(draw_color(&ctx, rgb, B, target));
+
+        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 1, 21, 4, tr_rgb(rgb[R], rgb[G], rgb[B]), TR_COLOR_TRUE));
+
+        MY_CHK(tr_ctx_render(&ctx));
+
         int key = 0;
         if (_kbhit())
             key = _getch();
@@ -101,16 +111,6 @@ int main(void) {
             alive = false;
             break;
         }
-
-        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
-
-        MY_CHK(draw_color(&ctx, rgb, R, target));
-        MY_CHK(draw_color(&ctx, rgb, G, target));
-        MY_CHK(draw_color(&ctx, rgb, B, target));
-
-        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 1, 21, 4, tr_rgb(rgb[R], rgb[G], rgb[B]), TR_COLOR_TRUE));
-
-        MY_CHK(tr_ctx_render(&ctx));
     }
     tr_close_alt();
 

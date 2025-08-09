@@ -5,10 +5,10 @@
 
 #include <conio.h>
 
-#define MY_CHK(x)       \
-    do {                \
-        if (x != TR_OK) \
-            break;      \
+#define MY_CHK(x)          \
+    do {                   \
+        if (TR_FAILED(x))  \
+            alive = false; \
     } while (0)
 
 void fill_box(TrCellArray *box) {

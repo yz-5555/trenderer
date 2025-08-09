@@ -1,7 +1,6 @@
 .clangd
 
 build-tr.bat
-build-dino.bat
 build-rp.bat
 
 CMakeLists.txt
