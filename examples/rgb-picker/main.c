@@ -2,6 +2,8 @@
 #include "trenderer.h"
 
 #include <conio.h>
+#define ESC 27
+
 #include <stdio.h>
 
 #define STR_LEN 7
@@ -107,7 +109,7 @@ int main(void) {
         case 'd':
             increase_target(&target);
             break;
-        case 27:
+        case ESC:
             alive = false;
             break;
         }

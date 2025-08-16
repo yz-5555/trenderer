@@ -55,10 +55,15 @@ int main(void) {
 #define TRENDERER_IMPLEMENTATION
 #include "trenderer.h"
 
+#include <conio.h>
+#define ESC 27
+
 int main(void) {
     TrRenderContext ctx;
-    tr_ctx_init(&ctx, 50, 10);
+    tr_ctx_init(&ctx, 0, 0, 50, 10);
 
+    tr_open_alt(); // Open the alternative buffer
+    tr_hide_cursor();
     while (1) {
         tr_ctx_clear(&ctx, TR_WHITE_16, TR_COLOR_16);
 
@@ -66,7 +71,11 @@ int main(void) {
         tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE, TR_COLOR_TRUE);
 
         tr_ctx_render(&ctx);
+
+        if (_kbhit() && _getch() == ESC)
+            break;
     }
+    tr_close_alt(); // Close the alternative buffer
 
     return 0;
 }

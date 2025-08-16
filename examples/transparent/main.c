@@ -4,6 +4,7 @@
 #include "trenderer.h"
 
 #include <conio.h>
+#define ESC 27
 
 #define MY_CHK(x)          \
     do {                   \
@@ -63,7 +64,7 @@ int main(void) {
         case 'd':
             pos_x += 1;
             break;
-        case 27:
+        case ESC:
             alive = false;
             break;
         }
