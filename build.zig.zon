@@ -1,0 +1,6 @@
+.{ .name = .build_with_zig, .version = "0.0.1", .minimum_zig_version = "0.14.0", .dependencies = .{
+    .compile_commands = .{
+        .url = "https://github.com/the-argus/zig-compile-commands/archive/11cc2917816875aae4890e0a899f810e33570d70.tar.gz",
+        .hash = "N-V-__8AAFLOAACuuPPvb9E05PlcLiPoxsMOTRiP4K1hSaoB",
+    },
+}, .paths = .{"src"}, .fingerprint = 0xadaab19ce7f11572 }

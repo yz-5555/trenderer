@@ -1,11 +1,8 @@
-.clangd
+run-tr.bat
+run-rp.bat
 
-build-tr.bat
-build-rp.bat
+.cache/
+.zig-cache/
+zig-out/
 
-CMakeLists.txt
-CMakePresets.json
-build/
-
-.idea/
-cmake-build-debug-visual-studio/
+compile_commands.json

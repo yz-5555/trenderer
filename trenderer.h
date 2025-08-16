@@ -578,42 +578,42 @@ TrResult tr_buf_add_effects(char *buf, int *idx, size_t len, TrEffect effects) {
         return TR_OK;
     }
     if (effects & TR_BOLD) {
-        TR_PRIV_APPEND("\x1b[1m");
+        TR_PRIV_APPEND("%s", "\x1b[1m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_DIM) {
-        TR_PRIV_APPEND("\x1b[2m");
+        TR_PRIV_APPEND("%s", "\x1b[2m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_ITALIC) {
-        TR_PRIV_APPEND("\x1b[3m");
+        TR_PRIV_APPEND("%s", "\x1b[3m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_UNDERLINE) {
-        TR_PRIV_APPEND("\x1b[4m");
+        TR_PRIV_APPEND("%s", "\x1b[4m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_BLINK) {
-        TR_PRIV_APPEND("\x1b[5m");
+        TR_PRIV_APPEND("%s", "\x1b[5m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVERT) {
-        TR_PRIV_APPEND("\x1b[7m");
+        TR_PRIV_APPEND("%s", "\x1b[7m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVISIBLE) {
-        TR_PRIV_APPEND("\x1b[8m");
+        TR_PRIV_APPEND("%s", "\x1b[8m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_STRIKETHROUGH) {
-        TR_PRIV_APPEND("\x1b[9m");
+        TR_PRIV_APPEND("%s", "\x1b[9m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
@@ -621,44 +621,44 @@ TrResult tr_buf_add_effects(char *buf, int *idx, size_t len, TrEffect effects) {
 }
 TrResult tr_buf_remove_effects(char *buf, int *idx, size_t len, TrEffect effects) {
     if (effects & TR_BOLD || effects & TR_DIM) {
-        TR_PRIV_APPEND("\x1b[22m");
+        TR_PRIV_APPEND("%s", "\x1b[22m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_ITALIC) {
-        TR_PRIV_APPEND("\x1b[23m");
+        TR_PRIV_APPEND("%s", "\x1b[23m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_UNDERLINE) {
-        TR_PRIV_APPEND("\x1b[24m");
+        TR_PRIV_APPEND("%s", "\x1b[24m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_BLINK) {
-        TR_PRIV_APPEND("\x1b[25m");
+        TR_PRIV_APPEND("%s", "\x1b[25m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVERT) {
-        TR_PRIV_APPEND("\x1b[27m");
+        TR_PRIV_APPEND("%s", "\x1b[27m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVISIBLE) {
-        TR_PRIV_APPEND("\x1b[28m");
+        TR_PRIV_APPEND("%s", "\x1b[28m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_STRIKETHROUGH) {
-        TR_PRIV_APPEND("\x1b[29m");
+        TR_PRIV_APPEND("%s", "\x1b[29m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     return TR_OK;
 }
 TrResult tr_buf_reset_effects(char *buf, int *idx, size_t len) {
-    TR_PRIV_APPEND("\x1b[22;23;24;25;27;28;29m");
+    TR_PRIV_APPEND("%s", "\x1b[22;23;24;25;27;28;29m");
     TR_PRIV_CHK_BO(*idx, len);
 
     return TR_OK;
