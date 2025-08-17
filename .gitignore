@@ -4,5 +4,7 @@ run-rp.bat
 .cache/
 .zig-cache/
 zig-out/
+build.zig
+build.zig.zon
 
 compile_commands.json
