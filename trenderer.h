@@ -15,8 +15,8 @@
  *     NAMESPACES AND CONVENTIONS:
  *         Everything is under `tr` namespace. Macros and enum members are ALL_CAPS, structs and enums are PascalCase, and anything else is snake_case.
  *         `tr_priv_XXX` means it's private, those are used inside the library logic.
- *         `tr_carr_XXX`(TrCellArray), `tr_cvec_XXX`(TrCellVector), `tr_ctx_XXX`(TrRenderContext) mean they are OOP functions.
  *         `tr_priv_XXX` functions are likely to be unsafe or not usable in most of situations.
+ *         `tr_carr_XXX`(TrCellArray), `tr_cvec_XXX`(TrCellVector), `tr_ctx_XXX`(TrRenderContext) mean they are OOP functions.
  *
  *     DEFINES:
  *         #define TRENDERER_IMPLEMENTATION
@@ -290,6 +290,7 @@ void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode); // Cl
 // Helper functions (private)
 // ============================================================================
 TrResult tr_priv_set_ansi(char *buf, size_t *idx, size_t len, TrStyle *curr, TrCellSpan sprite, int sp_idx);
+size_t tr_priv_append_str(char *buf, size_t idx, size_t len, const char *str);
 void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos);
 bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len);
 bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx);
@@ -557,27 +558,22 @@ void tr_cvec_cleanup(TrCellVector *cvec) {
 #define TR_PRIV_APPEND_FMT(str, ...)                                     \
     do {                                                                 \
         int _i = snprintf(buf + (*idx), len - (*idx), str, __VA_ARGS__); \
-        (*idx) += _i > 0 ? (size_t)_i : 0;                               \
+        size_t _s = _i > 0 ? (size_t)_i : 0;                             \
+        if ((*idx) + _s >= len || _s == 0)                               \
+            return TR_ERR_BUF_OVERFLOW;                                  \
+        (*idx) += _s;                                                    \
     } while (0)
 
-#define TR_PRIV_APPEND_STR(str)        \
-    do {                               \
-        size_t _l = strlen(str);       \
-        memcpy(buf + (*idx), str, _l); \
-        (*idx) += _l;                  \
+#define TR_PRIV_APPEND_STR(str)                                \
+    do {                                                       \
+        size_t _s = tr_priv_append_str(buf, (*idx), len, str); \
+        if (_s == 0)                                           \
+            return TR_ERR_BUF_OVERFLOW;                        \
+        (*idx) += _s;                                          \
     } while (0)
 
-#define TR_PRIV_CHK_BO(idx, len)        \
-    do {                                \
-        if ((idx) >= (len - 1)) {       \
-            return TR_ERR_BUF_OVERFLOW; \
-        }                               \
-    } while (0)
-
-TrResult
-tr_buf_move_cursor(char *buf, size_t *idx, size_t len, int x, int y) {
+TrResult tr_buf_move_cursor(char *buf, size_t *idx, size_t len, int x, int y) {
     TR_PRIV_APPEND_FMT("\x1b[%d;%dH", y + 1, x + 1);
-    TR_PRIV_CHK_BO(*idx, len);
 
     return TR_OK;
 }
@@ -592,42 +588,34 @@ TrResult tr_buf_add_effects(char *buf, size_t *idx, size_t len, TrEffect effects
     }
     if (effects & TR_BOLD) {
         TR_PRIV_APPEND_STR("\x1b[1m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_DIM) {
         TR_PRIV_APPEND_STR("\x1b[2m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_ITALIC) {
         TR_PRIV_APPEND_STR("\x1b[3m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_UNDERLINE) {
         TR_PRIV_APPEND_STR("\x1b[4m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_BLINK) {
         TR_PRIV_APPEND_STR("\x1b[5m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVERT) {
         TR_PRIV_APPEND_STR("\x1b[7m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVISIBLE) {
         TR_PRIV_APPEND_STR("\x1b[8m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_STRIKETHROUGH) {
         TR_PRIV_APPEND_STR("\x1b[9m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     return TR_OK;
@@ -635,44 +623,36 @@ TrResult tr_buf_add_effects(char *buf, size_t *idx, size_t len, TrEffect effects
 TrResult tr_buf_remove_effects(char *buf, size_t *idx, size_t len, TrEffect effects) {
     if (effects & TR_BOLD || effects & TR_DIM) {
         TR_PRIV_APPEND_STR("\x1b[22m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_ITALIC) {
         TR_PRIV_APPEND_STR("\x1b[23m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_UNDERLINE) {
         TR_PRIV_APPEND_STR("\x1b[24m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_BLINK) {
         TR_PRIV_APPEND_STR("\x1b[25m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVERT) {
         TR_PRIV_APPEND_STR("\x1b[27m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVISIBLE) {
         TR_PRIV_APPEND_STR("\x1b[28m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_STRIKETHROUGH) {
         TR_PRIV_APPEND_STR("\x1b[29m");
-        TR_PRIV_CHK_BO(*idx, len);
     }
 
     return TR_OK;
 }
 TrResult tr_buf_reset_effects(char *buf, size_t *idx, size_t len) {
     TR_PRIV_APPEND_STR("\x1b[22;23;24;25;27;28;29m");
-    TR_PRIV_CHK_BO(*idx, len);
 
     return TR_OK;
 }
@@ -687,15 +667,12 @@ TrResult tr_buf_set_fg(char *buf, size_t *idx, size_t len, uint32_t fg_color, Tr
     switch (fg_mode) {
     case TR_COLOR_16:
         TR_PRIV_APPEND_FMT("\x1b[%dm", fg_color);
-        TR_PRIV_CHK_BO(*idx, len);
         break;
     case TR_COLOR_256:
         TR_PRIV_APPEND_FMT("\x1b[38;5;%dm", fg_color);
-        TR_PRIV_CHK_BO(*idx, len);
         break;
     case TR_COLOR_TRUE:
         TR_PRIV_APPEND_FMT("\x1b[38;2;%d;%d;%dm", tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
-        TR_PRIV_CHK_BO(*idx, len);
         break;
     }
 
@@ -708,15 +685,12 @@ TrResult tr_buf_set_bg(char *buf, size_t *idx, size_t len, uint32_t bg_color, Tr
     switch (bg_mode) {
     case TR_COLOR_16:
         TR_PRIV_APPEND_FMT("\x1b[%dm", 10 + bg_color);
-        TR_PRIV_CHK_BO(*idx, len);
         break;
     case TR_COLOR_256:
         TR_PRIV_APPEND_FMT("\x1b[48;5;%dm", bg_color);
-        TR_PRIV_CHK_BO(*idx, len);
         break;
     case TR_COLOR_TRUE:
         TR_PRIV_APPEND_FMT("\x1b[48;2;%d;%d;%dm", tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
-        TR_PRIV_CHK_BO(*idx, len);
         break;
     }
 
@@ -1090,6 +1064,14 @@ TrResult tr_priv_set_ansi(char *buf, size_t *idx, size_t len, TrStyle *curr, TrC
     }
 
     return TR_OK;
+}
+size_t tr_priv_append_str(char *buf, size_t idx, size_t len, const char *str) {
+    size_t str_len = strlen(str);
+    if (idx + str_len >= len)
+        return 0;
+
+    memcpy(buf + idx, str, str_len);
+    return str_len;
 }
 void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos) {
     if (pos >= 0) {
