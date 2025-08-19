@@ -559,7 +559,7 @@ void tr_cvec_cleanup(TrCellVector *cvec) {
     do {                                                                 \
         int _i = snprintf(buf + (*idx), len - (*idx), str, __VA_ARGS__); \
         size_t _s = _i > 0 ? (size_t)_i : 0;                             \
-        if ((*idx) + _s >= len || _s == 0)                               \
+        if (((*idx) + _s >= len) || _s == 0)                               \
             return TR_ERR_BUF_OVERFLOW;                                  \
         (*idx) += _s;                                                    \
     } while (0)
