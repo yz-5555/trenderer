@@ -16,6 +16,7 @@
  *         Everything is under `tr` namespace. Macros and enum members are ALL_CAPS, structs and enums are PascalCase, and anything else is snake_case.
  *         `tr_priv_XXX` means it's private, those are used inside the library logic.
  *         `tr_carr_XXX`(TrCellArray), `tr_cvec_XXX`(TrCellVector), `tr_ctx_XXX`(TrRenderContext) mean they are OOP functions.
+ *         `tr_priv_XXX` functions are likely to be unsafe or not usable in most of situations.
  *
  *     DEFINES:
  *         #define TRENDERER_IMPLEMENTATION
@@ -225,20 +226,20 @@ typedef TrCellVector TrCellSpan; // View for `TrCell` containers. Similar to std
 
 // Cursor
 // ----------------------------------------------------------------------------
-TrResult tr_buf_move_cursor(char *buf, int *idx, size_t len, int x, int y); // Append a string that moves cursor to buf.
+TrResult tr_buf_move_cursor(char *buf, size_t *idx, size_t len, int x, int y); // Append a string that moves cursor to buf.
 // ----------------------------------------------------------------------------
 
 // Effect
 // ----------------------------------------------------------------------------
-TrResult tr_buf_add_effects(char *buf, int *idx, size_t len, TrEffect effects);    // Append a string that add effects to buf.
-TrResult tr_buf_remove_effects(char *buf, int *idx, size_t len, TrEffect effects); // Append a string that removes effects to buf.
-TrResult tr_buf_reset_effects(char *buf, int *idx, size_t len);                    // Append a string that resets effects to buf.
+TrResult tr_buf_add_effects(char *buf, size_t *idx, size_t len, TrEffect effects);    // Append a string that add effects to buf.
+TrResult tr_buf_remove_effects(char *buf, size_t *idx, size_t len, TrEffect effects); // Append a string that removes effects to buf.
+TrResult tr_buf_reset_effects(char *buf, size_t *idx, size_t len);                    // Append a string that resets effects to buf.
 // ----------------------------------------------------------------------------
 
 // Color
 // ----------------------------------------------------------------------------
-TrResult tr_buf_set_fg(char *buf, int *idx, size_t len, uint32_t fg_color, TrColorMode fg_mode); // Append a string that set fg color to buf.
-TrResult tr_buf_set_bg(char *buf, int *idx, size_t len, uint32_t bg_color, TrColorMode bg_mode); // Append a string that set bg color to buf.
+TrResult tr_buf_set_fg(char *buf, size_t *idx, size_t len, uint32_t fg_color, TrColorMode fg_mode); // Append a string that set fg color to buf.
+TrResult tr_buf_set_bg(char *buf, size_t *idx, size_t len, uint32_t bg_color, TrColorMode bg_mode); // Append a string that set bg color to buf.
 // ----------------------------------------------------------------------------
 
 TrResult tr_draw_sprite(TrCellSpan sprite, int x, int y);                                          // Draw a sprite on the screen.
@@ -276,8 +277,8 @@ TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, Tr
 // ============================================================================
 // Type conversion
 // ----------------------------------------------------------------------------
-TrCellSpan tr_atos(const TrCellArray *carr);                            // Stand for `tr_array_to_span`. Convert `TrCellArray` to `TrCellSpan`.
-TrCellSpan tr_ftos(const TrFramebufferBase *fb, int width, int height); // Stand for `tr_framebuffer_to_span`. Convert `TrFrameBuffer` to `TrCellSpan`.
+TrCellSpan tr_atos(TrCellArray *carr);                            // Stand for `tr_array_to_span`. Convert `TrCellArray` to `TrCellSpan`.
+TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height); // Stand for `tr_framebuffer_to_span`. Convert `TrFrameBuffer` to `TrCellSpan`.
 // ----------------------------------------------------------------------------
 
 // Cell buffer
@@ -288,9 +289,9 @@ void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode); // Cl
 
 // Helper functions (private)
 // ============================================================================
-TrResult tr_priv_set_ansi(char *buf, int *idx, size_t len, TrStyle *curr, TrCellSpan sprite, int sp_idx);
+TrResult tr_priv_set_ansi(char *buf, size_t *idx, size_t len, TrStyle *curr, TrCellSpan sprite, int sp_idx);
 void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int size, int pos);
-bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, int len);
+bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len);
 bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx);
 void tr_priv_ctx_swap(TrRenderContext *ctx);
 void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, const TrRenderContext *ctx);
@@ -506,7 +507,7 @@ TrResult tr_cvec_init(TrCellVector *cvec, int width, int height) {
     cvec->width = width;
     cvec->height = height;
 
-    size_t len = width * height;
+    size_t len = (size_t)(width * height);
 
     cvec->letter = (char *)malloc(len * sizeof(char));
     if (cvec->letter == NULL)
@@ -553,7 +554,18 @@ void tr_cvec_cleanup(TrCellVector *cvec) {
 
 // Cursor
 // ----------------------------------------------------------------------------
-#define TR_PRIV_APPEND(str, ...) (*idx += snprintf(buf + (*idx), len - (*idx), str, __VA_ARGS__));
+#define TR_PRIV_APPEND_FMT(str, ...)                                     \
+    do {                                                                 \
+        int _i = snprintf(buf + (*idx), len - (*idx), str, __VA_ARGS__); \
+        (*idx) += _i > 0 ? (size_t)_i : 0;                               \
+    } while (0)
+
+#define TR_PRIV_APPEND_STR(str)        \
+    do {                               \
+        size_t _l = strlen(str);       \
+        memcpy(buf + (*idx), str, _l); \
+        (*idx) += _l;                  \
+    } while (0)
 
 #define TR_PRIV_CHK_BO(idx, len)        \
     do {                                \
@@ -562,8 +574,9 @@ void tr_cvec_cleanup(TrCellVector *cvec) {
         }                               \
     } while (0)
 
-TrResult tr_buf_move_cursor(char *buf, int *idx, size_t len, int x, int y) {
-    TR_PRIV_APPEND("\x1b[%d;%dH", y + 1, x + 1);
+TrResult
+tr_buf_move_cursor(char *buf, size_t *idx, size_t len, int x, int y) {
+    TR_PRIV_APPEND_FMT("\x1b[%d;%dH", y + 1, x + 1);
     TR_PRIV_CHK_BO(*idx, len);
 
     return TR_OK;
@@ -572,93 +585,93 @@ TrResult tr_buf_move_cursor(char *buf, int *idx, size_t len, int x, int y) {
 
 // Effect
 // ----------------------------------------------------------------------------
-TrResult tr_buf_add_effects(char *buf, int *idx, size_t len, TrEffect effects) {
+TrResult tr_buf_add_effects(char *buf, size_t *idx, size_t len, TrEffect effects) {
     if (effects == TR_DEFAULT_EFFECT) {
         tr_buf_reset_effects(buf, idx, len);
         return TR_OK;
     }
     if (effects & TR_BOLD) {
-        TR_PRIV_APPEND("%s", "\x1b[1m");
+        TR_PRIV_APPEND_STR("\x1b[1m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_DIM) {
-        TR_PRIV_APPEND("%s", "\x1b[2m");
+        TR_PRIV_APPEND_STR("\x1b[2m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_ITALIC) {
-        TR_PRIV_APPEND("%s", "\x1b[3m");
+        TR_PRIV_APPEND_STR("\x1b[3m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_UNDERLINE) {
-        TR_PRIV_APPEND("%s", "\x1b[4m");
+        TR_PRIV_APPEND_STR("\x1b[4m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_BLINK) {
-        TR_PRIV_APPEND("%s", "\x1b[5m");
+        TR_PRIV_APPEND_STR("\x1b[5m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVERT) {
-        TR_PRIV_APPEND("%s", "\x1b[7m");
+        TR_PRIV_APPEND_STR("\x1b[7m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVISIBLE) {
-        TR_PRIV_APPEND("%s", "\x1b[8m");
+        TR_PRIV_APPEND_STR("\x1b[8m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_STRIKETHROUGH) {
-        TR_PRIV_APPEND("%s", "\x1b[9m");
+        TR_PRIV_APPEND_STR("\x1b[9m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     return TR_OK;
 }
-TrResult tr_buf_remove_effects(char *buf, int *idx, size_t len, TrEffect effects) {
+TrResult tr_buf_remove_effects(char *buf, size_t *idx, size_t len, TrEffect effects) {
     if (effects & TR_BOLD || effects & TR_DIM) {
-        TR_PRIV_APPEND("%s", "\x1b[22m");
+        TR_PRIV_APPEND_STR("\x1b[22m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_ITALIC) {
-        TR_PRIV_APPEND("%s", "\x1b[23m");
+        TR_PRIV_APPEND_STR("\x1b[23m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_UNDERLINE) {
-        TR_PRIV_APPEND("%s", "\x1b[24m");
+        TR_PRIV_APPEND_STR("\x1b[24m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_BLINK) {
-        TR_PRIV_APPEND("%s", "\x1b[25m");
+        TR_PRIV_APPEND_STR("\x1b[25m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVERT) {
-        TR_PRIV_APPEND("%s", "\x1b[27m");
+        TR_PRIV_APPEND_STR("\x1b[27m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_INVISIBLE) {
-        TR_PRIV_APPEND("%s", "\x1b[28m");
+        TR_PRIV_APPEND_STR("\x1b[28m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     if (effects & TR_STRIKETHROUGH) {
-        TR_PRIV_APPEND("%s", "\x1b[29m");
+        TR_PRIV_APPEND_STR("\x1b[29m");
         TR_PRIV_CHK_BO(*idx, len);
     }
 
     return TR_OK;
 }
-TrResult tr_buf_reset_effects(char *buf, int *idx, size_t len) {
-    TR_PRIV_APPEND("%s", "\x1b[22;23;24;25;27;28;29m");
+TrResult tr_buf_reset_effects(char *buf, size_t *idx, size_t len) {
+    TR_PRIV_APPEND_STR("\x1b[22;23;24;25;27;28;29m");
     TR_PRIV_CHK_BO(*idx, len);
 
     return TR_OK;
@@ -667,42 +680,42 @@ TrResult tr_buf_reset_effects(char *buf, int *idx, size_t len) {
 
 // Color
 // ----------------------------------------------------------------------------
-TrResult tr_buf_set_fg(char *buf, int *idx, size_t len, uint32_t fg_color, TrColorMode fg_mode) {
+TrResult tr_buf_set_fg(char *buf, size_t *idx, size_t len, uint32_t fg_color, TrColorMode fg_mode) {
     if (fg_color == TR_TRANSPARENT)
         return TR_OK;
 
     switch (fg_mode) {
     case TR_COLOR_16:
-        TR_PRIV_APPEND("\x1b[%dm", fg_color);
+        TR_PRIV_APPEND_FMT("\x1b[%dm", fg_color);
         TR_PRIV_CHK_BO(*idx, len);
         break;
     case TR_COLOR_256:
-        TR_PRIV_APPEND("\x1b[38;5;%dm", fg_color);
+        TR_PRIV_APPEND_FMT("\x1b[38;5;%dm", fg_color);
         TR_PRIV_CHK_BO(*idx, len);
         break;
     case TR_COLOR_TRUE:
-        TR_PRIV_APPEND("\x1b[38;2;%d;%d;%dm", tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
+        TR_PRIV_APPEND_FMT("\x1b[38;2;%d;%d;%dm", tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
         TR_PRIV_CHK_BO(*idx, len);
         break;
     }
 
     return TR_OK;
 }
-TrResult tr_buf_set_bg(char *buf, int *idx, size_t len, uint32_t bg_color, TrColorMode bg_mode) {
+TrResult tr_buf_set_bg(char *buf, size_t *idx, size_t len, uint32_t bg_color, TrColorMode bg_mode) {
     if (bg_color == TR_TRANSPARENT)
         return TR_OK;
 
     switch (bg_mode) {
     case TR_COLOR_16:
-        TR_PRIV_APPEND("\x1b[%dm", 10 + bg_color);
+        TR_PRIV_APPEND_FMT("\x1b[%dm", 10 + bg_color);
         TR_PRIV_CHK_BO(*idx, len);
         break;
     case TR_COLOR_256:
-        TR_PRIV_APPEND("\x1b[48;5;%dm", bg_color);
+        TR_PRIV_APPEND_FMT("\x1b[48;5;%dm", bg_color);
         TR_PRIV_CHK_BO(*idx, len);
         break;
     case TR_COLOR_TRUE:
-        TR_PRIV_APPEND("\x1b[48;2;%d;%d;%dm", tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
+        TR_PRIV_APPEND_FMT("\x1b[48;2;%d;%d;%dm", tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
         TR_PRIV_CHK_BO(*idx, len);
         break;
     }
@@ -721,7 +734,7 @@ TrResult tr_draw_sprite(TrCellSpan sprite, int x, int y) {
         .bg.code = TR_DEFAULT_COLOR_16,
         .bg.mode = TR_COLOR_16,
     };
-    int idx = 0;
+    size_t idx = 0;
     char raw_buf[TR_RAW_BUFFER_LENGTH];
 
     for (int row = 0; row < sprite.height; row += 1) {
@@ -772,7 +785,7 @@ TrResult tr_draw_spritesheet(TrCellSpan ss, int sp_x, int sp_y, int sp_w, int sp
         .bg.code = TR_DEFAULT_COLOR_16,
         .bg.mode = TR_COLOR_16,
     };
-    int idx = 0;
+    size_t idx = 0;
     char raw_buf[TR_RAW_BUFFER_LENGTH];
 
     for (int row = 0; row < sp_h; row += 1) {
@@ -809,7 +822,7 @@ TrResult tr_draw_text(const char *text, TrStyle style, int x, int y) {
     if (!text || y < 0)
         return TR_ERR_BAD_ARG;
 
-    int idx = 0;
+    size_t idx = 0;
     char raw_buf[TR_RAW_BUFFER_LENGTH];
 
     TR_CHK(tr_buf_move_cursor(raw_buf, &idx, TR_RAW_BUFFER_LENGTH, x, y));
@@ -818,7 +831,9 @@ TrResult tr_draw_text(const char *text, TrStyle style, int x, int y) {
     TR_CHK(tr_buf_set_fg(raw_buf, &idx, TR_RAW_BUFFER_LENGTH, style.fg.code, style.fg.mode));
     TR_CHK(tr_buf_set_bg(raw_buf, &idx, TR_RAW_BUFFER_LENGTH, style.bg.code, style.bg.mode));
 
-    idx += snprintf(raw_buf + idx, TR_RAW_BUFFER_LENGTH - idx, "%s", text);
+    int res = snprintf(raw_buf + idx, TR_RAW_BUFFER_LENGTH - idx, "%s", text);
+    idx += res > 0 ? (size_t)res : 0;
+
     if (idx >= TR_RAW_BUFFER_LENGTH - 1)
         return TR_ERR_BUF_OVERFLOW;
 
@@ -889,11 +904,11 @@ TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int hei
     for (int row = 0; row < visible_height; row += 1) {
         int fb_row_base = fb_base + row * ctx->width; // [fb_row_base] == [y + row][x]
 
-        memset(ctx->back.letter + fb_row_base, ' ', visible_width * sizeof(char));
-        memset(ctx->back.effects + fb_row_base, TR_DEFAULT_EFFECT, visible_width * sizeof(TrEffect));
+        memset(ctx->back.letter + fb_row_base, ' ', (size_t)visible_width * sizeof(char));
+        memset(ctx->back.effects + fb_row_base, TR_DEFAULT_EFFECT, (size_t)visible_width * sizeof(TrEffect));
 
         for (int col = 0; col < visible_width; col += 1) {
-            int idx = col + fb_row_base; // [idx] = [y + row][x + col]
+            int idx = col + fb_row_base; // [idx] == [y + row][x + col]
 
             ctx->back.fg[idx].code = color;
             ctx->back.fg[idx].mode = color_mode;
@@ -927,8 +942,8 @@ TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int x, int 
         int fb_row_base = fb_base + row * ctx->width;   // [fb_row_base] == [y + row][x]
         int sp_row_base = sp_base + row * sprite.width; // [sp_row_base] == [sp_row + row][sp_col]
 
-        memcpy(ctx->back.letter + fb_row_base, sprite.letter + sp_row_base, visible_width * sizeof(char));
-        memcpy(ctx->back.effects + fb_row_base, sprite.effects + sp_row_base, visible_width * sizeof(TrEffect));
+        memcpy(ctx->back.letter + fb_row_base, sprite.letter + sp_row_base, (size_t)visible_width * sizeof(char));
+        memcpy(ctx->back.effects + fb_row_base, sprite.effects + sp_row_base, (size_t)visible_width * sizeof(TrEffect));
 
         for (int col = 0; col < visible_width; col += 1) {
             int sp_idx = col + sp_row_base; // [sp_idx] == [sp_row + row][sp_col + col]
@@ -955,13 +970,13 @@ TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, Tr
         return TR_ERR_BAD_ARG;
     int visible_len = 0;
     int text_idx = 0;
-    tr_priv_get_visible(&visible_len, &text_idx, ctx->width, len, x);
+    tr_priv_get_visible(&visible_len, &text_idx, ctx->width, (int)len, x);
     if (visible_len <= 0)
         return TR_OK;
 
     int fb_base = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width; // [fb_base] == [y or 0][x or 0]
 
-    memcpy(ctx->back.letter + fb_base, text + text_idx, visible_len * sizeof(char));
+    memcpy(ctx->back.letter + fb_base, text + text_idx, (size_t)visible_len * sizeof(char));
 
     for (int col = 0; col < visible_len; col += 1) {
         int fb_idx = col + fb_base; // [fb_idx] == [y][x + col]
@@ -1016,7 +1031,7 @@ void tr_print_effects(TrEffect effects) {
 
 // Type conversion
 // ----------------------------------------------------------------------------
-TrCellSpan tr_atos(const TrCellArray *carr) {
+TrCellSpan tr_atos(TrCellArray *carr) {
     return (TrCellSpan){
         .letter = (char *)carr->letter,
         .effects = (TrEffect *)carr->effects,
@@ -1025,7 +1040,7 @@ TrCellSpan tr_atos(const TrCellArray *carr) {
         .width = carr->width,
         .height = carr->height};
 }
-TrCellSpan tr_ftos(const TrFramebufferBase *fb, int width, int height) {
+TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
     return (TrCellSpan){
         .letter = (char *)fb->letter,
         .effects = (TrEffect *)fb->effects,
@@ -1039,12 +1054,12 @@ TrCellSpan tr_ftos(const TrFramebufferBase *fb, int width, int height) {
 // Pixel buffer
 // ----------------------------------------------------------------------------
 void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode) {
-    size_t len = buf.width * buf.height;
+    size_t len = (size_t)(buf.width * buf.height);
 
     memset(buf.letter, ' ', len * sizeof(char));
     memset(buf.effects, TR_DEFAULT_EFFECT, len * sizeof(TrEffect));
 
-    for (int i = 0; i < len; i += 1) {
+    for (size_t i = 0; i < len; i += 1) {
         buf.fg[i].code = TR_DEFAULT_COLOR_16;
         buf.fg[i].mode = TR_COLOR_16;
         buf.bg[i].code = bg_color;
@@ -1055,9 +1070,7 @@ void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode) {
 
 // Helper functions (private)
 // ============================================================================
-TrResult tr_priv_set_ansi(char *buf, int *idx, size_t len, TrStyle *curr, TrCellSpan sprite, int sp_idx) {
-    TrResult res = TR_OK;
-
+TrResult tr_priv_set_ansi(char *buf, size_t *idx, size_t len, TrStyle *curr, TrCellSpan sprite, int sp_idx) {
     if (curr->effects != sprite.effects[sp_idx]) {
         TR_CHK(tr_buf_add_effects(buf, idx, len, sprite.effects[sp_idx] & ~curr->effects));
         TR_CHK(tr_buf_remove_effects(buf, idx, len, curr->effects & ~sprite.effects[sp_idx]));
@@ -1094,7 +1107,7 @@ void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, int siz
         }
     }
 }
-bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, int len) {
+bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len) {
     if (memcmp(ctx->front.letter + idx, ctx->back.letter + idx, len * sizeof(char)) != 0)
         return false;
 
@@ -1131,7 +1144,7 @@ bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx) {
     return true;
 }
 void tr_priv_ctx_swap(TrRenderContext *ctx) {
-    size_t len = ctx->width * ctx->height;
+    size_t len = (size_t)(ctx->width * ctx->height);
 
     memcpy(ctx->front.letter, ctx->back.letter, len * sizeof(char));
     memcpy(ctx->front.effects, ctx->back.effects, len * sizeof(TrEffect));
@@ -1147,7 +1160,7 @@ void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, const TrRen
     for (int row = 0; row < ctx->height; row += 1) {
         int fb_row_base = 0 + row * ctx->width; // [fb_row_base] == [row][0]
 
-        if (tr_priv_ctx_memcmp(ctx, fb_row_base, ctx->width))
+        if (tr_priv_ctx_memcmp(ctx, fb_row_base, (size_t)(ctx->width)))
             continue;
 
         for (int col = 0; col < ctx->width; col += 1) {
