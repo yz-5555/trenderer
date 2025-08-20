@@ -14,8 +14,7 @@
  *
  *     NAMESPACES AND CONVENTIONS:
  *         Everything is under `tr` namespace. Macros and enum members are ALL_CAPS, structs and enums are PascalCase, and anything else is snake_case.
- *         `tr_priv_XXX` means it's private, those are used inside the library logic.
- *         `tr_priv_XXX` functions are likely to be unsafe or not usable in most of situations.
+ *         `tr_priv_XXX` means it's private, those are used inside the library logic. They are likely to be unsafe or not usable in most of situations.
  *         `tr_carr_XXX`(TrCellArray), `tr_cvec_XXX`(TrCellVector), `tr_ctx_XXX`(TrRenderContext) mean they are OOP functions.
  *
  *     DEFINES:
@@ -170,7 +169,7 @@ typedef enum TrResult {
             return _r;         \
     } while (0)
 
-#define TR_FAILED(x) (x != TR_OK)
+#define TR_FAILED(x) ((x) != TR_OK)
 
 void tr_print_effects(TrEffect effects); // Print the names of effects.
 // ============================================================================
@@ -559,7 +558,7 @@ void tr_cvec_cleanup(TrCellVector *cvec) {
     do {                                                                 \
         int _i = snprintf(buf + (*idx), len - (*idx), str, __VA_ARGS__); \
         size_t _s = _i > 0 ? (size_t)_i : 0;                             \
-        if (((*idx) + _s >= len) || _s == 0)                               \
+        if (((*idx) + _s >= len) || _s == 0)                             \
             return TR_ERR_BUF_OVERFLOW;                                  \
         (*idx) += _s;                                                    \
     } while (0)
