@@ -70,4 +70,6 @@ int main(void) {
         }
     }
     tr_close_alt();
+
+	return 0;
 }
