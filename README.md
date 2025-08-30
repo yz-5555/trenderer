@@ -113,5 +113,5 @@ It's under your control. It does not force you the way how you code. You can mod
 
 It's designed to be easy to understand and make you focus on your own project rather than understanding mine. (At least I tried to)
 
-## Credits
+## Inspiration
 Library design and code structure inspired by [raylib](https://github.com/raysan5/raylib), [raygui](https://github.com/raysan5/raygui) and OpenGL.
