@@ -20,7 +20,7 @@ Just add `trenderer.h` to your project and it's good to go.
 
 Do this:
 ```c
-#define TRENDERER_IMPLEMENTATION
+#define TR_IMPLEMENTATION
 ```
 before you include `trenderer.h` **one** C or C++ file to create the implmentation.
 
@@ -29,7 +29,7 @@ Check the comments in the header for detailed info.
 ## Basic example
 ### Easy and simple ANSI usage
 ```c
-#define TRENDERER_IMPLEMENTATION
+#define TR_IMPLEMENTATION
 #include "trenderer.h"
 
 #include <stdio.h>
@@ -52,7 +52,7 @@ int main(void) {
 ```
 ### Optimized rendering for games and apps. (Double-buffering)
 ```c
-#define TRENDERER_IMPLEMENTATION
+#define TR_IMPLEMENTATION
 #include "trenderer.h"
 
 #include <conio.h>

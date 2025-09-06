@@ -1,6 +1,6 @@
 #define TR_CELL_ARRAY_LENGTH 9
 #define TR_FRAMEBUFFER_LENGTH 200
-#define TRENDERER_IMPLEMENTATION
+#define TR_IMPLEMENTATION
 #include "trenderer.h"
 
 #include <conio.h>
@@ -71,5 +71,5 @@ int main(void) {
     }
     tr_close_alt();
 
-	return 0;
+    return 0;
 }

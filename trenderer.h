@@ -1,5 +1,5 @@
-#ifndef TRENDERER_H
-#define TRENDERER_H
+#ifndef TR_TRENDERER_H
+#define TR_TRENDERER_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -17,7 +17,7 @@
  *         `tr_carr_XXX`(TrCellArray), `tr_cvec_XXX`(TrCellVector), `tr_ctx_XXX`(TrRenderContext) mean they are OOP functions.
  *
  *     DEFINES:
- *         #define TRENDERER_IMPLEMENTATION
+ *         #define TR_IMPLEMENTATION
  *             Create the implmentation of the library. MUST BE DEFINED IN ONE SOURCE FILE BEFORE INCLUDING THE HEADER.
  *
  *         #define TR_CELL_ARRAY_LENGTH 64
@@ -30,20 +30,17 @@
  *             The length of a buffer that stores all data including ANSI escape codes and characters, etc. The default value is 2048 and you can define other value before you include the header.
  *
  * ==========================================================================*/
+
 #ifndef TR_API
-#ifdef TR_PRIVATE
-#define TR_API static inline
-#else
-#define TR_API extern
-#endif
-#endif
-
-#ifndef TR_MALLOC
-#define TR_MALLOC(x) malloc(x)
-#endif
-
-#ifndef TR_FREE
-#define TR_FREE(x) free(x)
+    #ifdef TR_PRIVATE
+        #ifdef __cplusplus
+            #define TR_API inline
+        #else
+            #define TR_API static inline
+        #endif
+    #else
+        #define TR_API extern
+    #endif
 #endif
 
 #ifdef __cplusplus
@@ -182,12 +179,12 @@ typedef enum TrResult {
 } TrResult;
 
 #ifndef TR_CHK
-#define TR_CHK(x)              \
-    do {                       \
-        TrResult _r;           \
-        if ((_r = x) != TR_OK) \
-            return _r;         \
-    } while (0)
+    #define TR_CHK(x)              \
+        do {                       \
+            TrResult _r;           \
+            if ((_r = x) != TR_OK) \
+                return _r;         \
+        } while (0)
 #endif
 
 #define TR_FAILED(x) ((x) != TR_OK)
@@ -213,7 +210,7 @@ typedef struct TrCell {
 } TrCell;
 
 #ifndef TR_CELL_ARRAY_LENGTH
-#define TR_CELL_ARRAY_LENGTH 64
+    #define TR_CELL_ARRAY_LENGTH 64
 #endif
 
 typedef struct TrCellArray { // Array that holds `TrCell` in amount of `TR_CELL_ARRAY_LENGTH` in SoA style.
@@ -239,7 +236,7 @@ typedef TrCellVector TrCellSpan; // View for `TrCell` containers. Similar to std
 // Basic renderer
 // ============================================================================
 #ifndef TR_RAW_BUFFER_LENGTH
-#define TR_RAW_BUFFER_LENGTH 2048
+    #define TR_RAW_BUFFER_LENGTH 2048
 #endif
 
 // Cursor
@@ -271,7 +268,7 @@ TR_API TrResult tr_draw_text(const char *text, TrStyle style, int x, int y);    
 // Double-buffering renderer
 // ============================================================================
 #ifndef TR_FRAMEBUFFER_LENGTH
-#define TR_FRAMEBUFFER_LENGTH 512
+    #define TR_FRAMEBUFFER_LENGTH 512
 #endif
 
 typedef struct TrFramebufferBase { // Data set for a framebuffer.
@@ -312,15 +309,31 @@ TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode)
 }
 #endif
 
-#endif // TRENDERER_H
+#endif // TR_TRENDERER_H
 
-// #define TRENDERER_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
+// #define TR_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
 
-#ifdef TRENDERER_IMPLEMENTATION
+#ifdef TR_IMPLEMENTATION
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if defined(TR_MALLOC) && defined(TR_FREE)
+// ok
+#elif !defined(TR_MALLOC) && !defined(TR_FREE)
+// ok
+#else
+    #error "Must define all or none or TR_MALLOC, and TR_FREE."
+#endif
+
+#ifndef TR_MALLOC
+    #define TR_MALLOC(x) malloc(x)
+#endif
+
+#ifndef TR_FREE
+    #define TR_FREE(x) free(x)
+#endif
 
 // Screen & Window control
 // ============================================================================
@@ -1162,4 +1175,4 @@ TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode)
 }
 // ============================================================================
 
-#endif // TRENDERER_IMPLEMENTATION
+#endif // TR_IMPLEMENTATION
