@@ -1,19 +1,30 @@
 # trenderer
-Header-only ANSI library for drawing your idea in your terminal easily.
+A minimal, portable software renderer for terminals.
 
 ## Features
 - **Beginner-friendly.**
 - Cross-platform.
-- Header-only and single-file.
+- Single-header.
 - Free and open-source.
-- I don't know if I'm putting hyphens correctly.
 - Plain C99, no external dependencies.
 - All color formats (ANSI 16, ANSI 256, True color) support.
 - Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE, ...) support.
-- Optimized rendering using framebuffer.
-- Easy error handling.
-- Minimal usage of macros.
-- Made with heart.
+- Highly customizable.
+- No global or hidden state.
+
+## Limitations
+- No widgets.
+- No input system.
+- No unicodes support.
+- No z-buffer support.
+- No OS-specific validations.
+
+## Todo
+- [ ] Improved documents and comments.
+- [ ] More examples.
+- [ ] Unicodes supoort.
+- [ ] Z-buffer support.
+- [ ] OS-specific validations.
 
 ## Installation & Usage
 Just add `trenderer.h` to your project and it's good to go.
@@ -22,7 +33,7 @@ Do this:
 ```c
 #define TR_IMPLEMENTATION
 ```
-before you include `trenderer.h` **one** C or C++ file to create the implmentation.
+before you include `trenderer.h` **one** C or C++ file to create the implementation.
 
 Check the comments in the header for detailed info.
 
@@ -84,34 +95,7 @@ More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/exa
 
 ## Notes
 - Effects and colors may look different depending on your terminal. Check if yours support them.
-- This is not a TUI library, it does not have widgets.
-- Developed and tested on [wezterm](https://github.com/wezterm/wezterm), Windows 11 and clang-cl.
-
-## Limitations
-- No unicodes support.
-- No z-buffer support.
-- No image support.
-- No complex OS specific window handling.
-
-## Todo
-- [ ] improved documents and comments.
-- [ ] More demos
-- [ ] unicodes supoort.
-- [ ] z-buffer support.
-- [ ] OS specific validations.
-
-## Design goals
-**1. Minimal abstraction**
-
-It's explicit, straightforward. No hidden logic or global variables. Only necessary macros and typedefs.
-
-**2. Your library**
-
-It's under your control. It does not force you the way how you code. You can modify constants by defining them before including it.
-
-**3. No need to learn**
-
-It's designed to be easy to understand and make you focus on your own project rather than understanding mine. (At least I tried to)
+- Developed and tested on [wezterm](https://github.com/wezterm/wezterm), Windows 11 and clang.
 
 ## Inspiration
-Library design and code structure inspired by [raylib](https://github.com/raysan5/raylib), [raygui](https://github.com/raysan5/raygui) and OpenGL.
+Library design and code structure inspired by [nuklear](https://github.com/Immediate-Mode-UI/Nuklear), [stb](https://github.com/nothings/stb) and OpenGL.
