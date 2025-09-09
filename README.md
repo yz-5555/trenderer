@@ -6,6 +6,7 @@ A minimal, portable software renderer for terminals.
 - Cross-platform.
 - Single-header.
 - Free and open-source.
+- Simple, explicit, easy.
 - Plain C99, no external dependencies.
 - All color formats (ANSI 16, ANSI 256, True color) support.
 - Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE, ...) support.
@@ -17,6 +18,7 @@ A minimal, portable software renderer for terminals.
 - No input system.
 - No unicodes support.
 - No z-buffer support.
+- No transformations.
 - No OS-specific validations.
 
 ## Todo
@@ -24,6 +26,7 @@ A minimal, portable software renderer for terminals.
 - [ ] More examples.
 - [ ] Unicodes supoort.
 - [ ] Z-buffer support.
+- [ ] Transformations.
 - [ ] OS-specific validations.
 
 ## Installation & Usage
