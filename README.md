@@ -1,12 +1,12 @@
 # trenderer
-A minimal, portable software renderer for terminals.
+A single-header software renderer for terminals.
 
 ## Features
 - **Beginner-friendly.**
 - Cross-platform.
 - Single-header.
 - Free and open-source.
-- Simple, explicit, easy.
+- Minimal, portable, explicit.
 - Plain C99, no external dependencies.
 - All color formats (ANSI 16, ANSI 256, True color) support.
 - Various ANSI effects (e.g. BOLD, ITALIC, UNDERLINE, ...) support.
@@ -96,9 +96,12 @@ int main(void) {
 ```
 More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/examples)
 
-## Notes
-- Effects and colors may look different depending on your terminal. Check if yours support them.
-- Developed and tested on [wezterm](https://github.com/wezterm/wezterm), Windows 11 and clang.
+> [!NOTE]
+> Effects and colors may look different depending on your terminal. Check if yours support them.
+> Developed and tested on [wezterm](https://github.com/wezterm/wezterm), Windows 11 and clang.
+
+## License
+trenderer is licensed under MIT License. See [LICENSE](https://github.com/yz-5555/trenderer/blob/main/LICENSE) for more info.
 
 ## Inspiration
 Library design and code structure inspired by [nuklear](https://github.com/Immediate-Mode-UI/Nuklear), [stb](https://github.com/nothings/stb) and OpenGL.
