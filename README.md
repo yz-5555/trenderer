@@ -19,6 +19,7 @@ A single-header software renderer for terminals.
 - No unicodes support.
 - No z-buffer support.
 - No transformations.
+- No 3D support.
 - No OS-specific validations.
 
 ## Todo
@@ -27,6 +28,7 @@ A single-header software renderer for terminals.
 - [ ] Unicodes supoort.
 - [ ] Z-buffer support.
 - [ ] Transformations.
+- [ ] 3D support.
 - [ ] OS-specific validations.
 
 ## Installation & Usage
@@ -98,7 +100,6 @@ More examples in [./examples](https://github.com/yz-5555/trenderer/tree/main/exa
 
 > [!NOTE]
 > Effects and colors may look different depending on your terminal. Check if yours support them.
-> Developed and tested on [wezterm](https://github.com/wezterm/wezterm), Windows 11 and clang.
 
 ## License
 trenderer is licensed under MIT License. See [LICENSE](https://github.com/yz-5555/trenderer/blob/main/LICENSE) for more info.
