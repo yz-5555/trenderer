@@ -1,5 +1,5 @@
 # trenderer
-A single-header software renderer for terminals.
+A minimal, portable single-header C library for terminals.
 
 ## Features
 - **Beginner-friendly.**
@@ -66,7 +66,7 @@ int main(void) {
     return 0;
 }
 ```
-### Optimized rendering for games and apps. (Double-buffering)
+### Optimized rendering for games and apps.
 ```c
 #define TR_IMPLEMENTATION
 #include "trenderer.h"
