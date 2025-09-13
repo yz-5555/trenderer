@@ -1,5 +1,6 @@
 #define TR_CELL_ARRAY_LENGTH 9
 #define TR_FRAMEBUFFER_LENGTH 200
+
 #define TR_IMPLEMENTATION
 #include "trenderer.h"
 
@@ -20,6 +21,27 @@ void fill_box(TrCellArray *box) {
         box->bg[i] = (TrColor){TR_TRANSPARENT, TR_COLOR_TRUE};
     }
 }
+void process_input(int *pos_x, int *pos_y, bool *alive) {
+    int key = _kbhit() ? _getch() : 0;
+
+    switch (key) {
+    case 'w':
+        *pos_y -= 1;
+        break;
+    case 'a':
+        *pos_x -= 1;
+        break;
+    case 's':
+        *pos_y += 1;
+        break;
+    case 'd':
+        *pos_x += 1;
+        break;
+    case ESC:
+        *alive = false;
+        break;
+    }
+}
 
 int main(void) {
     bool alive = true;
@@ -36,6 +58,8 @@ int main(void) {
     tr_open_alt();
     tr_hide_cursor();
     while (alive) {
+        process_input(&pos_x, &pos_y, &alive);
+
         tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
 
         MY_CHK(tr_ctx_draw_rect(&ctx, 0, 0, 10, 5, TR_RED_16, TR_COLOR_16));
@@ -46,28 +70,6 @@ int main(void) {
         MY_CHK(tr_ctx_draw_sprite(&ctx, tr_atos(&box), pos_x, pos_y));
 
         MY_CHK(tr_ctx_render(&ctx));
-
-        char key = 0;
-        if (_kbhit())
-            key = _getch();
-
-        switch (key) {
-        case 'w':
-            pos_y -= 1;
-            break;
-        case 'a':
-            pos_x -= 1;
-            break;
-        case 's':
-            pos_y += 1;
-            break;
-        case 'd':
-            pos_x += 1;
-            break;
-        case ESC:
-            alive = false;
-            break;
-        }
     }
     tr_close_alt();
 

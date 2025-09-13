@@ -71,6 +71,27 @@ TrResult draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
 
     return tr_ctx_draw_text(ctx, str, STR_LEN, style, pos, 0);
 }
+void process_input(uint8_t *rgb, int *target, bool *alive) {
+    int key = _kbhit() ? _getch() : 0;
+
+    switch (key) {
+    case 'w':
+        increase_color(rgb, *target);
+        break;
+    case 'a':
+        decrease_target(target);
+        break;
+    case 's':
+        decrease_color(rgb, *target);
+        break;
+    case 'd':
+        increase_target(target);
+        break;
+    case ESC:
+        *alive = false;
+        break;
+    }
+}
 int main(void) {
     bool alive = true;
     uint8_t rgb[3] = {0, 0, 0};
@@ -82,6 +103,8 @@ int main(void) {
     tr_open_alt();
     tr_hide_cursor();
     while (alive) {
+        process_input(rgb, &target, &alive);
+
         tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
 
         MY_CHK(draw_color(&ctx, rgb, R, target));
@@ -91,28 +114,6 @@ int main(void) {
         MY_CHK(tr_ctx_draw_rect(&ctx, 0, 1, 21, 4, tr_rgb(rgb[R], rgb[G], rgb[B]), TR_COLOR_TRUE));
 
         MY_CHK(tr_ctx_render(&ctx));
-
-        int key = 0;
-        if (_kbhit())
-            key = _getch();
-
-        switch (key) {
-        case 'w':
-            increase_color(rgb, target);
-            break;
-        case 'a':
-            decrease_target(&target);
-            break;
-        case 's':
-            decrease_color(rgb, target);
-            break;
-        case 'd':
-            increase_target(&target);
-            break;
-        case ESC:
-            alive = false;
-            break;
-        }
     }
     tr_close_alt();
 

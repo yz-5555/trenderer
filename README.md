@@ -45,6 +45,7 @@ Check the comments in the header for detailed info.
 ## Basic example
 ### Easy and simple ANSI usage
 ```c
+#define TR_NO_RENDERER
 #define TR_IMPLEMENTATION
 #include "trenderer.h"
 
@@ -76,19 +77,23 @@ int main(void) {
 
 int main(void) {
     TrRenderContext ctx;
-    tr_ctx_init(&ctx, 0, 0, 50, 10);
+    if (tr_ctx_init(&ctx, 0, 0, 50, 10) != TR_OK)
+        return -1;
 
     tr_open_alt(); // Open the alternative buffer
     tr_hide_cursor();
     while (1) {
-        tr_ctx_clear(&ctx, TR_WHITE_16, TR_COLOR_16);
+        if (_kbhit() && _getch() == ESC)
+            break;
+        
+        if (tr_ctx_clear(&ctx, TR_WHITE_16, TR_COLOR_16) != TR_OK)
+            break;
 
         // Draw an orange rect in the middle.
-        tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE, TR_COLOR_TRUE);
+        if (tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE, TR_COLOR_TRUE) != TR_OK)
+            break;
 
-        tr_ctx_render(&ctx);
-
-        if (_kbhit() && _getch() == ESC)
+        if (tr_ctx_render(&ctx) != TR_OK)
             break;
     }
     tr_close_alt(); // Close the alternative buffer
