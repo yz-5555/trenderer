@@ -9,7 +9,7 @@
 
 #define MY_CHK(x)          \
     do {                   \
-        if (TR_FAILED(x))  \
+        if ((x) != TR_OK)  \
             alive = false; \
     } while (0)
 
