@@ -1,19 +1,15 @@
 #ifndef TR_TRENDERER_H
 #define TR_TRENDERER_H
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
 /* ============================================================================
  *
- * trenderer v0.3.0
+ * trenderer v0.3.1
  *     NOTES:
- *         It's a header-only, single file library. Which means, declaration and definition of functions are both inside this file.
+ *         This is a single-header library. Declaration and definition of functions are both inside this file.
  *         They are completely separated with TRENDERER_IMPLEMENTATION. There are no inline functions for coherent structure.
  *
  *     NAMESPACES AND CONVENTIONS:
- *         Everything is under `tr` namespace. Macros and enum members are ALL_CAPS, structs and enums are PascalCase, and anything else is snake_case.
+ *         Everything is in `tr` namespace. Macros and enum members are ALL_CAPS, structs and enums are PascalCase, and anything else is snake_case.
  *         `tr_carr_XXX`(TrCellArray), `tr_cvec_XXX`(TrCellVector), `tr_ctx_XXX`(TrRenderContext) mean they are OOP functions.
  *
  *     DEFINES:
@@ -33,6 +29,10 @@
  *             The length of a buffer that stores all data including ANSI escape codes and characters, etc. The default value is 2048 and you can define other value before you include the header.
  *
  * ==========================================================================*/
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 // clang-format off
 #ifndef TR_API
@@ -68,6 +68,7 @@ TR_API void tr_hide_cursor(void);         // Set visibility of cursor.
 
 // Effects
 // ============================================================================
+#define TR_EFFECTS_LENGTH 8
 typedef enum TrEffect {
     TR_DEFAULT_EFFECT = 0,
     TR_BOLD = 1 << 0,
@@ -174,6 +175,7 @@ TR_API uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb val
 // ============================================================================
 
 #ifndef TR_NO_RENDERER
+
 // Debug
 // ============================================================================
 typedef enum TrResult {
@@ -209,7 +211,6 @@ typedef struct TrCell {
     #define TR_MAX_CELL_ARRAY_LENGTH 64
 #endif
 // clang-format on
-
 typedef struct TrCellArray { // Array that holds `TrCell` in amount of `TR_MAX_CELL_ARRAY_LENGTH` in SoA style.
     char letter[TR_MAX_CELL_ARRAY_LENGTH];
     TrEffect effects[TR_MAX_CELL_ARRAY_LENGTH];
@@ -237,7 +238,6 @@ typedef TrCellVector TrCellSpan; // View for `TrCell` containers. Similar to std
     #define TR_MAX_RAW_BUFFER_LENGTH 2048
 #endif
 // clang-format on
-
 // Cursor
 // ----------------------------------------------------------------------------
 TR_API TrResult tr_str_move_cursor(char *dst, size_t *idx, size_t len, int x, int y); // Append a string that moves cursor to dst.
@@ -272,7 +272,6 @@ TR_API TrResult tr_draw_text(const char *text, TrStyle style, int x, int y);    
     #define TR_MAX_FRAMEBUFFER_LENGTH 512
 #endif
 // clang-format on
-
 typedef struct TrFramebufferBase { // Data set for a framebuffer.
     char letter[TR_MAX_FRAMEBUFFER_LENGTH];
     TrEffect effects[TR_MAX_FRAMEBUFFER_LENGTH];
@@ -352,8 +351,6 @@ TR_API void tr_hide_cursor(void) {
 
 // Effect
 // ============================================================================
-#define TR_EFFECTS_LENGTH 8
-
 #define TR_PRIV_ADD_EFFECTS_IDX 0
 #define TR_PRIV_REMOVE_EFFECTS_IDX 8
 #define TR_PRIV_RESET_EFFECTS_IDX 16
@@ -1160,3 +1157,4 @@ TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode)
 #endif // TR_NO_RENDERER
 
 #endif // TR_IMPLEMENTATION
+
