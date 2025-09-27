@@ -384,7 +384,8 @@ static const char *tr_effects_ansi[] = {
     "\x1b[22;23;24;25;27;28;29m",
 
     // reset_all
-    "\x1b[0m"};
+    "\x1b[0m"
+};
 
 TR_API void tr_add_effects(TrEffect effects) {
     if (effects == TR_DEFAULT_EFFECT) {
@@ -425,12 +426,14 @@ static const char *tr_color_ansi[] = {
     // bg
     "\x1b[%dm",
     "\x1b[48;5;%dm",
-    "\x1b[48;2;%d;%d;%dm"};
+    "\x1b[48;2;%d;%d;%dm"
+};
 
 TR_API TrColor tr_default_color(void) {
     return (TrColor){
         .code = TR_DEFAULT_COLOR_16,
-        .mode = TR_COLOR_16};
+        .mode = TR_COLOR_16
+    };
 }
 TR_API void tr_set_fg(uint32_t fg_color, TrColorMode fg_mode) {
     if (fg_color == TR_TRANSPARENT)
@@ -520,7 +523,8 @@ TR_API TrStyle tr_default_style(void) {
         .fg.code = TR_DEFAULT_COLOR_16,
         .fg.mode = TR_COLOR_16,
         .bg.code = TR_DEFAULT_COLOR_16,
-        .bg.mode = TR_COLOR_16};
+        .bg.mode = TR_COLOR_16
+    };
 }
 TR_API void tr_set_style(TrStyle style) {
     tr_add_effects(style.effects);
@@ -1122,7 +1126,8 @@ TR_API TrCellSpan tr_atos(TrCellArray *carr) {
         .fg = (TrColor *)carr->fg,
         .bg = (TrColor *)carr->bg,
         .width = carr->width,
-        .height = carr->height};
+        .height = carr->height
+    };
 }
 TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
     return (TrCellSpan){
@@ -1131,7 +1136,8 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
         .fg = (TrColor *)fb->fg,
         .bg = (TrColor *)fb->bg,
         .width = width,
-        .height = height};
+        .height = height
+    };
 }
 // ----------------------------------------------------------------------------
 
