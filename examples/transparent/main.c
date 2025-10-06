@@ -44,9 +44,9 @@ void process_input(int *pos_x, int *pos_y, bool *alive) {
 }
 
 int main(void) {
-    bool alive = true;
     int pos_x = 0;
     int pos_y = 0;
+    bool alive = true;
 
     TrCellArray box;
     tr_carr_init(&box, 3, 3);

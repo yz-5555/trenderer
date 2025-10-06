@@ -62,12 +62,9 @@ TrResult draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
 
     TrStyle style = {
         .fg = tr_default_color(),
-        .bg = tr_default_color()};
-
-    if (idx == target)
-        style.effects = TR_UNDERLINE;
-    else
-        style.effects = TR_DEFAULT_EFFECT;
+        .bg = tr_default_color(),
+        .effects = idx == target ? TR_UNDERLINE : TR_DEFAULT_EFFECT
+    };
 
     return tr_ctx_draw_text(ctx, str, STR_LEN, style, pos, 0);
 }
@@ -93,9 +90,9 @@ void process_input(uint8_t *rgb, int *target, bool *alive) {
     }
 }
 int main(void) {
-    bool alive = true;
     uint8_t rgb[3] = {0, 0, 0};
     int target = 0;
+    bool alive = true;
 
     TrRenderContext ctx;
     tr_ctx_init(&ctx, 0, 0, 21, 5);
