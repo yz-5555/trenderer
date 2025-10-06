@@ -1,5 +1,5 @@
-#define TR_MAX_CELL_ARRAY_LENGTH 9
-#define TR_MAX_FRAMEBUFFER_LENGTH 200
+#define TR_MAX_CELL_ARRAY_LEN 9
+#define TR_MAX_FRAMEBUFFER_LENG 200
 
 #define TR_IMPLEMENTATION
 #include "trenderer.h"
