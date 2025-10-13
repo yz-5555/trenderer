@@ -7,11 +7,7 @@
 #include <conio.h>
 #define ESC 27
 
-#define MY_CHK(x)          \
-    do {                   \
-        if ((x) != TR_OK)  \
-            alive = false; \
-    } while (0)
+#define MY_CHK(x) if ((x) != TR_OK) alive = false
 
 void fill_box(TrCellArray *box) {
     for (int i = 0; i < box->width * box->height; i += 1) {
@@ -75,4 +71,5 @@ int main(void) {
 
     return 0;
 }
+
 
