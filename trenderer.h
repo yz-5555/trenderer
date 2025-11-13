@@ -352,14 +352,13 @@ TR_API void tr_hide_cursor(void) {
 
 // Effect
 // ============================================================================
+#define TR_PRIV_ADD_EFFECTS_IDX 0
+#define TR_PRIV_REMOVE_EFFECTS_IDX 8
+#define TR_PRIV_RESET_EFFECTS_IDX 16
+#define TR_PRIV_RESET_ALL_IDX 17
 
-// TODO: Find a way to use `sizeof` instead of using constants.
-#define TR_PRIV_ADD_EFFECTS_LEN 4
-#define TR_PRIV_REMOVE_EFFECTS_LEN 5
-#define TR_PRIV_RESET_EFFECTS_LEN 23
-#define TR_PRIV_RESET_ALL_LEN 4
-
-static const char tr_priv_add_effects_ansi[][TR_PRIV_ADD_EFFECTS_LEN + 1] = {
+static const char *tr_priv_effects_ansi[] = {
+    // TR_PRIV_ADD_EFFECTS_IDX
     "\x1b[1m",
     "\x1b[2m",
     "\x1b[3m",
@@ -367,9 +366,8 @@ static const char tr_priv_add_effects_ansi[][TR_PRIV_ADD_EFFECTS_LEN + 1] = {
     "\x1b[5m",
     "\x1b[7m",
     "\x1b[8m",
-    "\x1b[9m"
-};
-static const char tr_priv_remove_effects_ansi[][TR_PRIV_REMOVE_EFFECTS_LEN + 1] = {
+    "\x1b[9m",
+    // TR_PRIV_REMOVE_EFFECTS_IDX
     "\x1b[22m",
     "\x1b[22m",
     "\x1b[23m",
@@ -377,11 +375,12 @@ static const char tr_priv_remove_effects_ansi[][TR_PRIV_REMOVE_EFFECTS_LEN + 1] 
     "\x1b[25m",
     "\x1b[27m",
     "\x1b[28m",
-    "\x1b[29m"
+    "\x1b[29m",
+    // TR_PRIV_RESET_EFFECTS_IDX
+    "\x1b[22;23;24;25;27;28;29m",
+    // TR_PRIV_RESET_ALL_IDX
+    "\x1b[0m"
 };
-static const char tr_priv_reset_effects_ansi[TR_PRIV_RESET_EFFECTS_LEN + 1] = "\x1b[22;23;24;25;27;28;29m";
-static const char tr_priv_reset_all_ansi[TR_PRIV_RESET_ALL_LEN + 1] = "\x1b[0m";
-
 TR_API void tr_add_effects(TrEffect effects) {
     if (effects == TR_DEFAULT_EFFECT) {
         tr_reset_effects();
@@ -389,21 +388,21 @@ TR_API void tr_add_effects(TrEffect effects) {
     }
     for (int i = 0; i < TR_EFFECTS_LEN; i += 1) {
         if (effects & (TrEffect)(1 << i))
-            fputs(tr_priv_add_effects_ansi[i], stdout);
+            fputs(tr_priv_effects_ansi[TR_PRIV_ADD_EFFECTS_IDX + i], stdout);
     }
 }
 TR_API void tr_remove_effects(TrEffect effects) {
     for (int i = 0; i < TR_EFFECTS_LEN; i += 1) {
         if (effects & (TrEffect)(1 << i)) {
-            fputs(tr_priv_remove_effects_ansi[i], stdout);
+            fputs(tr_priv_effects_ansi[TR_PRIV_REMOVE_EFFECTS_IDX + i], stdout);
         }
     }
 }
 TR_API void tr_reset_effects(void) {
-    fputs(tr_priv_reset_effects_ansi, stdout);
+    fputs(tr_priv_effects_ansi[TR_PRIV_RESET_EFFECTS_IDX], stdout);
 }
 TR_API void tr_reset_all(void) {
-    fputs(tr_priv_reset_all_ansi, stdout);
+    fputs(tr_priv_effects_ansi[TR_PRIV_RESET_ALL_IDX], stdout);
 }
 // ============================================================================
 
@@ -416,7 +415,7 @@ static const char *tr_priv_fg_ansi[] = {
     "\x1b[38;2;%d;%d;%dm"
 };
 static const char *tr_priv_bg_ansi[] = {
-    // bg
+    // fg
     "\x1b[%dm",
     "\x1b[48;5;%dm",
     "\x1b[48;2;%d;%d;%dm"
@@ -608,7 +607,8 @@ TR_API void tr_cvec_cleanup(TrCellVector *cvec) {
         (*idx) += _s;                                                        \
     } while (0)
 
-static TrResult tr_priv_strcat(char *dst, size_t dst_len, size_t *idx, const char *src, size_t src_len) {
+static TrResult tr_priv_strcat(char *dst, size_t dst_len, size_t *idx, const char *src) {
+    size_t src_len = strlen(src);
     if (*idx + src_len >= dst_len - 1)
         return TR_ERR_BUF_OVERFLOW;
 
@@ -617,8 +617,6 @@ static TrResult tr_priv_strcat(char *dst, size_t dst_len, size_t *idx, const cha
 
     return TR_OK;
 }
-#define TR_PRIV_STRCAT_FIXED(dst, dst_len, idx, src) tr_priv_strcat(dst, dst_len, idx, src, sizeof(src) - 1)
-
 static TrResult tr_priv_emit_ansi(char *dst, size_t len, size_t *idx, TrStyle *curr, TrCellSpan sprite, int spr_idx) {
     if (curr->effects != sprite.effects[spr_idx]) {
         TR_CHK(tr_strcat_add_effects(dst, len, idx, sprite.effects[spr_idx] & ~curr->effects));
@@ -663,7 +661,7 @@ TR_API TrResult tr_strcat_add_effects(char *dst, size_t len, size_t *idx, TrEffe
     }
     for (int i = 0; i < TR_EFFECTS_LEN; i += 1) {
         if (effects & (TrEffect)(1 << i)) {
-            TR_CHK(TR_PRIV_STRCAT_FIXED(dst, len, idx, tr_priv_add_effects_ansi[i]));
+            TR_CHK(tr_priv_strcat(dst, len, idx, tr_priv_effects_ansi[TR_PRIV_ADD_EFFECTS_IDX + i]));
         }
     }
 
@@ -672,19 +670,19 @@ TR_API TrResult tr_strcat_add_effects(char *dst, size_t len, size_t *idx, TrEffe
 TR_API TrResult tr_strcat_remove_effects(char *dst, size_t len, size_t *idx, TrEffect effects) {
     for (int i = 0; i < TR_EFFECTS_LEN; i += 1) {
         if (effects & (TrEffect)(1 << i)) {
-            TR_CHK(TR_PRIV_STRCAT_FIXED(dst, len, idx, tr_priv_remove_effects_ansi[i]));
+            TR_CHK(tr_priv_strcat(dst, len, idx, tr_priv_effects_ansi[TR_PRIV_REMOVE_EFFECTS_IDX + i]));
         }
     }
 
     return TR_OK;
 }
 TR_API TrResult tr_strcat_reset_effects(char *dst, size_t len, size_t *idx) {
-    TR_CHK(TR_PRIV_STRCAT_FIXED(dst, len, idx, tr_priv_reset_effects_ansi));
+    TR_CHK(tr_priv_strcat(dst, len, idx, tr_priv_effects_ansi[TR_PRIV_RESET_EFFECTS_IDX]));
 
     return TR_OK;
 }
 TR_API TrResult tr_strcat_reset_all(char *dst, size_t len, size_t *idx) {
-    TR_CHK(TR_PRIV_STRCAT_FIXED(dst, len, idx, tr_priv_reset_all_ansi));
+    TR_CHK(tr_priv_strcat(dst, len, idx, tr_priv_effects_ansi[TR_PRIV_RESET_ALL_IDX]));
 
     return TR_OK;
 }
@@ -834,7 +832,7 @@ TR_API TrResult tr_draw_text(const char *text, TrStyle style, int x, int y) {
     TR_CHK(tr_strcat_set_fg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, style.fg.code, style.fg.mode));
     TR_CHK(tr_strcat_set_bg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, style.bg.code, style.bg.mode));
 
-    TR_CHK(tr_priv_strcat(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, text, strlen(text)));
+    TR_CHK(tr_priv_strcat(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, text));
 
     raw_buf[raw_buf_idx] = '\0';
     fputs(raw_buf, stdout);
