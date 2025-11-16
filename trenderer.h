@@ -87,70 +87,68 @@ TR_API void tr_reset_all(void);                  // Reset current effects, color
 
 // Color
 // ============================================================================
-typedef enum TrColorMode {
-    TR_COLOR_16,
-    TR_COLOR_256,
-    TR_COLOR_TRUE,
-} TrColorMode;
-typedef struct TrColor {
-    uint32_t code;
-    TrColorMode mode;
-} TrColor;
-TR_API TrColor tr_default_color(void);                         // Returns default color.
-TR_API void tr_set_fg(uint32_t fg_color, TrColorMode fg_mode); // Set foreground color of current buffer.
-TR_API void tr_set_bg(uint32_t bg_color, TrColorMode bg_mode); // Set background color of current buffer.
+TR_API void tr_set_fg(uint32_t fg_color); // Set foreground color of current buffer.
+TR_API void tr_set_bg(uint32_t bg_color); // Set background color of current buffer.
 
 // Color - Utility functions
 // ----------------------------------------------------------------------------
+#define TR_COLOR_16 0
+#define TR_COLOR_256 1
+#define TR_COLOR_TRUE 2
+
+TR_API uint32_t tr_color_16(uint8_t color);              // Create an ANSI 16 value.
+TR_API uint32_t tr_color_256(uint8_t color);             // Create an ANSI 256 value.
 TR_API uint32_t tr_gray_256(uint8_t scale);              // Create a gray scale value in ANSI 256 colors.
 TR_API uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b); // Create a rgb value.
 TR_API uint8_t tr_rgb_r(uint32_t rgb);                   // Get `r` of a rgb value.
 TR_API uint8_t tr_rgb_g(uint32_t rgb);                   // Get 'g' of a rgb value.
 TR_API uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
+TR_API uint8_t tr_color_code(uint32_t color);            // Get color code of a color. (ANSI 16 and ANSI 256 only)
+TR_API uint8_t tr_color_mode(uint32_t color);            // Get color mode of a color.
 // ----------------------------------------------------------------------------
 
 // Color - Constants - ANSI 16
 // ----------------------------------------------------------------------------
-#define TR_BLACK_16 30
-#define TR_RED_16 31
-#define TR_GREEN_16 32
-#define TR_YELLOW_16 33
-#define TR_BLUE_16 34
-#define TR_MAGENTA_16 35
-#define TR_CYAN_16 36
-#define TR_WHITE_16 37
+#define TR_BLACK_16 tr_color_16(30)
+#define TR_RED_16 tr_color_16(31)
+#define TR_GREEN_16 tr_color_16(32)
+#define TR_YELLOW_16 tr_color_16(33)
+#define TR_BLUE_16 tr_color_16(34)
+#define TR_MAGENTA_16 tr_color_16(35)
+#define TR_CYAN_16 tr_color_16(36)
+#define TR_WHITE_16 tr_color_16(37)
 
-#define TR_BRIGHT_BLACK_16 90
-#define TR_BRIGHT_RED_16 91
-#define TR_BRIGHT_GREEN_16 92
-#define TR_BRIGHT_YELLOW_16 93
-#define TR_BRIGHT_BLUE_16 94
-#define TR_BRIGHT_MAGENTA_16 95
-#define TR_BRIGHT_CYAN_16 96
-#define TR_BRIGHT_WHITE_16 97
+#define TR_BRIGHT_BLACK_16 tr_color_16(90)
+#define TR_BRIGHT_RED_16 tr_color_16(91)
+#define TR_BRIGHT_GREEN_16 tr_color_16(92)
+#define TR_BRIGHT_YELLOW_16 tr_color_16(93)
+#define TR_BRIGHT_BLUE_16 tr_color_16(94)
+#define TR_BRIGHT_MAGENTA_16 tr_color_16(95)
+#define TR_BRIGHT_CYAN_16 tr_color_16(96)
+#define TR_BRIGHT_WHITE_16 tr_color_16(97)
 
-#define TR_DEFAULT_COLOR_16 39
+#define TR_DEFAULT_COLOR_16 tr_color_16(39)
 // ----------------------------------------------------------------------------
 
 // Color - Constants - ANSI 256
 // ----------------------------------------------------------------------------
-#define TR_BLACK_256 0
-#define TR_RED_256 1
-#define TR_GREEN_256 2
-#define TR_YELLOW_256 3
-#define TR_BLUE_256 4
-#define TR_MAGENTA_256 5
-#define TR_CYAN_256 6
-#define TR_WHITE_256 7
+#define TR_BLACK_256 tr_color_256(0)
+#define TR_RED_256 tr_color_256(1)
+#define TR_GREEN_256 tr_color_256(2)
+#define TR_YELLOW_256 tr_color_256(3)
+#define TR_BLUE_256 tr_color_256(4)
+#define TR_MAGENTA_256 tr_color_256(5)
+#define TR_CYAN_256 tr_color_256(6)
+#define TR_WHITE_256 tr_color_256(7)
 
-#define TR_BRIGHT_BLACK_256 8
-#define TR_BRIGHT_RED_256 9
-#define TR_BRIGHT_GREEN_256 10
-#define TR_BRIGHT_YELLOW_256 11
-#define TR_BRIGHT_BLUE_256 12
-#define TR_BRIGHT_MAGENTA_256 13
-#define TR_BRIGHT_CYAN_256 14
-#define TR_BRIGHT_WHITE_256 15
+#define TR_BRIGHT_BLACK_256 tr_color_256(8)
+#define TR_BRIGHT_RED_256 tr_color_256(9)
+#define TR_BRIGHT_GREEN_256 tr_color_256(10)
+#define TR_BRIGHT_YELLOW_256 tr_color_256(11)
+#define TR_BRIGHT_BLUE_256 tr_color_256(12)
+#define TR_BRIGHT_MAGENTA_256 tr_color_256(13)
+#define TR_BRIGHT_CYAN_256 tr_color_256(14)
+#define TR_BRIGHT_WHITE_256 tr_color_256(15)
 // ----------------------------------------------------------------------------
 
 // Color - Constants - True color
@@ -192,7 +190,7 @@ typedef enum TrResult {
 // ============================================================================
 typedef struct TrStyle {
     TrEffect effects;
-    TrColor fg, bg;
+    uint32_t fg, bg;
 } TrStyle;
 TR_API TrStyle tr_default_style(void);                // Return a default style.
 TR_API void tr_set_style(TrStyle style);              // Set style of current buffer.
@@ -204,7 +202,7 @@ TR_API void tr_copy_style(TrStyle *dst, TrStyle src); // Copy value of `src` int
 typedef struct TrCell {
     char letter;
     TrEffect effects;
-    TrColor fg, bg;
+    uint32_t fg, bg;
 } TrCell;
 
 // clang-format off
@@ -215,7 +213,7 @@ typedef struct TrCell {
 typedef struct TrCellArray { // Array that holds `TrCell` in amount of `TR_MAX_CELL_ARRAY_LEN` in SoA style.
     char letter[TR_MAX_CELL_ARRAY_LEN];
     TrEffect effects[TR_MAX_CELL_ARRAY_LEN];
-    TrColor fg[TR_MAX_CELL_ARRAY_LEN], bg[TR_MAX_CELL_ARRAY_LEN];
+    uint32_t fg[TR_MAX_CELL_ARRAY_LEN], bg[TR_MAX_CELL_ARRAY_LEN];
     int width, height;
 } TrCellArray;
 TR_API TrResult tr_carr_init(TrCellArray *carr, int width, int height);
@@ -223,7 +221,7 @@ TR_API TrResult tr_carr_init(TrCellArray *carr, int width, int height);
 typedef struct TrCellVector { // Vector that holds `TrCell` in SoA style.
     char *letter;
     TrEffect *effects;
-    TrColor *fg, *bg;
+    uint32_t *fg, *bg;
     int width, height;
 } TrCellVector;
 TR_API TrResult tr_cvec_init(TrCellVector *cvec, int width, int height);
@@ -254,8 +252,8 @@ TR_API TrResult tr_strcat_reset_all(char *dst, size_t len, size_t *idx);        
 
 // Color
 // ----------------------------------------------------------------------------
-TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg_color, TrColorMode fg_mode); // Append a string that set fg color to dst.
-TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg_color, TrColorMode bg_mode); // Append a string that set bg color to dst.
+TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg_color); // Append a string that set fg color to dst.
+TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg_color); // Append a string that set bg color to dst.
 // ----------------------------------------------------------------------------
 
 // Rendering functions
@@ -276,7 +274,7 @@ TR_API TrResult tr_draw_text(const char *text, TrStyle style, int x, int y);    
 typedef struct TrFramebufferBase { // Data set for a framebuffer.
     char letter[TR_MAX_FRAMEBUFFER_LEN];
     TrEffect effects[TR_MAX_FRAMEBUFFER_LEN];
-    TrColor fg[TR_MAX_FRAMEBUFFER_LEN], bg[TR_MAX_FRAMEBUFFER_LEN];
+    uint32_t fg[TR_MAX_FRAMEBUFFER_LEN], bg[TR_MAX_FRAMEBUFFER_LEN];
 } TrFramebufferBase;
 
 typedef struct TrRenderContext { // Render context for double-buffering. It holds two framebuffers.
@@ -284,12 +282,12 @@ typedef struct TrRenderContext { // Render context for double-buffering. It hold
     int x, y;
     int width, height;
 } TrRenderContext;
-TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int height);                                              // Initialize the context.
-TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color, TrColorMode bg_mode);                                              // Clear `back`.
-TR_API TrResult tr_ctx_render(TrRenderContext *ctx);                                                                                 // Render the result using dirty rectangles.
-TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color, TrColorMode color_mode); // Draw a rectangle on `back`.
-TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int x, int y);                                           // Draw a sprite on `back`.
-TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y);                   // Draw a string on `back`.
+TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int height);                            // Initialize the context.
+TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color);                                                 // Clear `back`.
+TR_API TrResult tr_ctx_render(TrRenderContext *ctx);                                                               // Render the result using dirty rectangles.
+TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color);       // Draw a rectangle on `back`.
+TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int x, int y);                         // Draw a sprite on `back`.
+TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y); // Draw a string on `back`.
 // TR_API void tr_ctx_draw_spritesheet(TrRenderContext *ctx, TrCellSpan ss, int spr_x, int spr_y, int spr_w, int spr_h, int x, int y); // Draw a sprite from a spritesheet on `back`.
 // ============================================================================
 
@@ -303,7 +301,7 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height); // Stan
 
 // Cell buffer
 // ----------------------------------------------------------------------------
-TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode); // Clear a cell buffer
+TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color); // Clear a cell buffer
 // ----------------------------------------------------------------------------
 // ============================================================================
 #endif // TR_NO_RENDERER
@@ -420,60 +418,70 @@ static const char *tr_priv_bg_ansi[] = {
     "\x1b[48;5;%dm",
     "\x1b[48;2;%d;%d;%dm"
 };
-
-TR_API TrColor tr_default_color(void) {
-    return (TrColor){
-        .code = TR_DEFAULT_COLOR_16,
-        .mode = TR_COLOR_16
-    };
-}
-TR_API void tr_set_fg(uint32_t fg_color, TrColorMode fg_mode) {
+TR_API void tr_set_fg(uint32_t fg_color) {
     if (fg_color == TR_TRANSPARENT)
         return;
 
-    switch (fg_mode) {
+    switch (tr_color_mode(fg_color)) {
     case TR_COLOR_16:
     case TR_COLOR_256:
-        printf(tr_priv_fg_ansi[fg_mode], fg_color);
+        printf(tr_priv_fg_ansi[fg], fg_color);
         break;
     case TR_COLOR_TRUE:
-        printf(tr_priv_fg_ansi[fg_mode], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
+        printf(tr_priv_fg_ansi[fg], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
         break;
     }
 }
-TR_API void tr_set_bg(uint32_t bg_color, TrColorMode bg_mode) {
+TR_API void tr_set_bg(uint32_t bg_color, uint32_tMode bg) {
     if (bg_color == TR_TRANSPARENT)
         return;
 
-    switch (bg_mode) {
+    switch (bg) {
     case TR_COLOR_16:
-        printf(tr_priv_bg_ansi[bg_mode], 10 + bg_color);
+        printf(tr_priv_bg_ansi[bg], 10 + bg_color);
         break;
     case TR_COLOR_256:
-        printf(tr_priv_bg_ansi[bg_mode], bg_color);
+        printf(tr_priv_bg_ansi[bg], bg_color);
         break;
     case TR_COLOR_TRUE:
-        printf(tr_priv_bg_ansi[bg_mode], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
+        printf(tr_priv_bg_ansi[bg], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
         break;
     }
 }
 
 // Color - Utility functions
 // ----------------------------------------------------------------------------
+TR_API uint32_t tr_color_16(uint8_t color) {
+    // NOTE: The code below might look dirty but it's reasonable. Valid color codes in ANSI 16 are 30-37, 39, 90-97.
+    if (color < 30 || color > 97)
+        return TR_DEFAULT_COLOR_16;
+    if (color == 38)
+        return TR_DEFAULT_COLOR_16;
+    if (39 < color && color < 90)
+        return TR_DEFAULT_COLOR_16;
+
+    return ((uint32_t)color << 8) | TR_COLOR_16;
+}
+TR_API uint32_t tr_color_256(uint8_t color) {
+    return ((uint32_t)color << 8) | TR_COLOR_256;
+}
 TR_API uint32_t tr_gray_256(uint8_t scale) {
     return (scale > 23) ? 255 : (232 + scale);
 }
 TR_API uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b) {
-    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+    return ((uint32_t)r << 24) | ((uint32_t)g << 16) | ((uint32_t)b << 8) | TR_COLOR_TRUE;
 }
 TR_API uint8_t tr_rgb_r(uint32_t rgb) {
-    return (rgb >> 16) & 0xFF;
+    return (rgb >> 24) & 0xFF;
 }
 TR_API uint8_t tr_rgb_g(uint32_t rgb) {
-    return (rgb >> 8) & 0xFF;
+    return (rgb >> 16) & 0xFF;
 }
 TR_API uint8_t tr_rgb_b(uint32_t rgb) {
-    return rgb & 0xFF;
+    return (rgb >> 8) & 0xFF;
+}
+TR_API uint8_t tr_color_mode(uint32_t color) {
+    return color & 0xFF;
 }
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -562,11 +570,11 @@ TR_API TrResult tr_cvec_init(TrCellVector *cvec, int width, int height) {
     if (cvec->effects == NULL)
         return TR_ERR_ALLOC_FAIL;
 
-    cvec->fg = (TrColor *)TR_MALLOC(len * sizeof(TrColor));
+    cvec->fg = (uint32_t *)TR_MALLOC(len * sizeof(uint32_t));
     if (cvec->fg == NULL)
         return TR_ERR_ALLOC_FAIL;
 
-    cvec->bg = (TrColor *)TR_MALLOC(len * sizeof(TrColor));
+    cvec->bg = (uint32_t *)TR_MALLOC(len * sizeof(uint32_t));
     if (cvec->bg == NULL)
         return TR_ERR_ALLOC_FAIL;
 
@@ -690,35 +698,35 @@ TR_API TrResult tr_strcat_reset_all(char *dst, size_t len, size_t *idx) {
 
 // Color
 // ----------------------------------------------------------------------------
-TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg_color, TrColorMode fg_mode) {
+TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg_color, uint32_tMode fg) {
     if (fg_color == TR_TRANSPARENT)
         return TR_OK;
 
-    switch (fg_mode) {
+    switch (fg) {
     case TR_COLOR_16:
     case TR_COLOR_256:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[fg_mode], fg_color);
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[fg], fg_color);
         break;
     case TR_COLOR_TRUE:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[fg_mode], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[fg], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
         break;
     }
 
     return TR_OK;
 }
-TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg_color, TrColorMode bg_mode) {
+TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg_color, uint32_tMode bg) {
     if (bg_color == TR_TRANSPARENT)
         return TR_OK;
 
-    switch (bg_mode) {
+    switch (bg) {
     case TR_COLOR_16:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[bg_mode], 10 + bg_color);
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[bg], 10 + bg_color);
         break;
     case TR_COLOR_256:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[bg_mode], bg_color);
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[bg], bg_color);
         break;
     case TR_COLOR_TRUE:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[bg_mode], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[bg], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
         break;
     }
 
@@ -869,10 +877,10 @@ static bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len) 
     if (memcmp(ctx->front.effects + idx, ctx->back.effects + idx, len * sizeof(TrEffect)) != 0)
         return false;
 
-    if (memcmp(ctx->front.fg + idx, ctx->back.fg + idx, len * sizeof(TrColor)) != 0)
+    if (memcmp(ctx->front.fg + idx, ctx->back.fg + idx, len * sizeof(uint32_t)) != 0)
         return false;
 
-    if (memcmp(ctx->front.bg + idx, ctx->back.bg + idx, len * sizeof(TrColor)) != 0)
+    if (memcmp(ctx->front.bg + idx, ctx->back.bg + idx, len * sizeof(uint32_t)) != 0)
         return false;
 
     return true;
@@ -943,8 +951,8 @@ static void tr_priv_ctx_swap(TrRenderContext *ctx) {
 
     memcpy(ctx->front.letter, ctx->back.letter, len * sizeof(char));
     memcpy(ctx->front.effects, ctx->back.effects, len * sizeof(TrEffect));
-    memcpy(ctx->front.fg, ctx->back.fg, len * sizeof(TrColor));
-    memcpy(ctx->front.bg, ctx->back.bg, len * sizeof(TrColor));
+    memcpy(ctx->front.fg, ctx->back.fg, len * sizeof(uint32_t));
+    memcpy(ctx->front.bg, ctx->back.bg, len * sizeof(uint32_t));
 }
 // ----------------------------------------------------------------------------
 TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int height) {
@@ -966,8 +974,8 @@ TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int h
 
     return TR_OK;
 }
-TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color, TrColorMode bg_mode) {
-    tr_clear_buf(tr_ftos(&ctx->back, ctx->width, ctx->height), bg_color, bg_mode);
+TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color, uint32_tMode bg) {
+    tr_clear_buf(tr_ftos(&ctx->back, ctx->width, ctx->height), bg_color, bg);
 }
 TR_API TrResult tr_ctx_render(TrRenderContext *ctx) {
     int dirty_rect_x = 0, dirty_rect_y = 0;
@@ -984,7 +992,7 @@ TR_API TrResult tr_ctx_render(TrRenderContext *ctx) {
 
     return TR_OK;
 }
-TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color, TrColorMode color_mode) {
+TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color, uint32_tMode color) {
     if (width <= 0 || height <= 0 || color == TR_TRANSPARENT)
         return TR_ERR_BAD_ARG;
 
@@ -1012,9 +1020,9 @@ TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, 
             int idx = col + fb_row_base; // [idx] == [y + row][x + col]
 
             ctx->back.fg[idx].code = color;
-            ctx->back.fg[idx].mode = color_mode;
+            ctx->back.fg[idx].mode = color;
             ctx->back.bg[idx].code = color;
-            ctx->back.bg[idx].mode = color_mode;
+            ctx->back.bg[idx].mode = color;
         }
     }
 
@@ -1104,8 +1112,8 @@ TR_API TrCellSpan tr_atos(TrCellArray *carr) {
     return (TrCellSpan){
         .letter = (char *)carr->letter,
         .effects = (TrEffect *)carr->effects,
-        .fg = (TrColor *)carr->fg,
-        .bg = (TrColor *)carr->bg,
+        .fg = (uint32_t *)carr->fg,
+        .bg = (uint32_t *)carr->bg,
         .width = carr->width,
         .height = carr->height
     };
@@ -1114,8 +1122,8 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
     return (TrCellSpan){
         .letter = (char *)fb->letter,
         .effects = (TrEffect *)fb->effects,
-        .fg = (TrColor *)fb->fg,
-        .bg = (TrColor *)fb->bg,
+        .fg = (uint32_t *)fb->fg,
+        .bg = (uint32_t *)fb->bg,
         .width = width,
         .height = height
     };
@@ -1124,7 +1132,7 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
 
 // Cell buffer
 // ----------------------------------------------------------------------------
-TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode) {
+TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, uint32_tMode bg) {
     size_t len = (size_t)(buf.width * buf.height);
 
     memset(buf.letter, ' ', len * sizeof(char));
@@ -1134,7 +1142,7 @@ TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, TrColorMode bg_mode)
         buf.fg[i].code = TR_DEFAULT_COLOR_16;
         buf.fg[i].mode = TR_COLOR_16;
         buf.bg[i].code = bg_color;
-        buf.bg[i].mode = bg_mode;
+        buf.bg[i].mode = bg;
     }
 }
 // ============================================================================
