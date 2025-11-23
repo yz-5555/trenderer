@@ -387,13 +387,13 @@ TR_API void tr_add_effects(TrEffect effects) {
         return;
     }
     for (int i = 0; i < TR_EFFECTS_LEN; i += 1) {
-        if (effects & (TrEffect)(1 << i))
+        if (effects & (1 << i))
             fputs(tr_priv_effects_ansi[TR_PRIV_ADD_EFFECTS_IDX + i], stdout);
     }
 }
 TR_API void tr_remove_effects(TrEffect effects) {
     for (int i = 0; i < TR_EFFECTS_LEN; i += 1) {
-        if (effects & (TrEffect)(1 << i)) {
+        if (effects & (1 << i)) {
             fputs(tr_priv_effects_ansi[TR_PRIV_REMOVE_EFFECTS_IDX + i], stdout);
         }
     }
@@ -429,7 +429,7 @@ TR_API void tr_set_fg(uint32_t fg_color) {
     switch (mode) {
     case TR_COLOR_16:
     case TR_COLOR_256:
-        printf(tr_priv_fg_ansi[mode], fg_color);
+        printf(tr_priv_fg_ansi[mode], tr_color_code(fg_color));
         break;
     case TR_COLOR_TRUE:
         printf(tr_priv_fg_ansi[mode], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
@@ -444,10 +444,10 @@ TR_API void tr_set_bg(uint32_t bg_color) {
 
     switch (mode) {
     case TR_COLOR_16:
-        printf(tr_priv_bg_ansi[mode], 10 + bg_color);
+        printf(tr_priv_bg_ansi[mode], 10 + tr_color_code(bg_color));
         break;
     case TR_COLOR_256:
-        printf(tr_priv_bg_ansi[mode], bg_color);
+        printf(tr_priv_bg_ansi[mode], tr_color_code(bg_color));
         break;
     case TR_COLOR_TRUE:
         printf(tr_priv_bg_ansi[mode], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
@@ -494,7 +494,7 @@ TR_API uint32_t tr_color_code(uint32_t color) {
 TR_API TrColorMode tr_color_mode(uint32_t color) {
     if (color == TR_TRANSPARENT)
         return TR_COLOR_16; // TR_TRANSPARENT doesn't have any color mode actually. The reason it returns TR_COLOR_16 is just because it's default value.
-    return color & 0xFF;
+    return color & 0xFF;    // TODO: if some dumbass passes weird ass value to this function, color & 0xFF might not be one of TrColorMode eunms.
 }
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -675,7 +675,7 @@ TR_API TrResult tr_strcat_add_effects(char *dst, size_t len, size_t *idx, TrEffe
         return TR_OK;
     }
     for (int i = 0; i < TR_EFFECTS_LEN; i += 1) {
-        if (effects & (TrEffect)(1 << i)) {
+        if (effects & (1 << i)) {
             TR_CHK(tr_priv_strcat(dst, len, idx, tr_priv_effects_ansi[TR_PRIV_ADD_EFFECTS_IDX + i]));
         }
     }
@@ -684,7 +684,7 @@ TR_API TrResult tr_strcat_add_effects(char *dst, size_t len, size_t *idx, TrEffe
 }
 TR_API TrResult tr_strcat_remove_effects(char *dst, size_t len, size_t *idx, TrEffect effects) {
     for (int i = 0; i < TR_EFFECTS_LEN; i += 1) {
-        if (effects & (TrEffect)(1 << i)) {
+        if (effects & (1 << i)) {
             TR_CHK(tr_priv_strcat(dst, len, idx, tr_priv_effects_ansi[TR_PRIV_REMOVE_EFFECTS_IDX + i]));
         }
     }
@@ -714,7 +714,7 @@ TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg
     switch (mode) {
     case TR_COLOR_16:
     case TR_COLOR_256:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[mode], fg_color);
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[mode], tr_color_code(fg_color));
         break;
     case TR_COLOR_TRUE:
         TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[mode], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
@@ -731,10 +731,10 @@ TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg
 
     switch (mode) {
     case TR_COLOR_16:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], 10 + bg_color);
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], 10 + tr_color_code(bg_color));
         break;
     case TR_COLOR_256:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], bg_color);
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], tr_color_code(bg_color));
         break;
     case TR_COLOR_TRUE:
         TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
@@ -996,14 +996,14 @@ TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, 
         return TR_ERR_BAD_ARG;
 
     int visible_width = 0;
-    int temp0 = 0;
-    tr_priv_get_visible(&visible_width, &temp0, ctx->width, width, x);
+    int _0 = 0; // placeholder
+    tr_priv_get_visible(&visible_width, &_0, ctx->width, width, x);
     if (visible_width <= 0)
         return TR_OK;
 
     int visible_height = 0;
-    int temp1 = 0;
-    tr_priv_get_visible(&visible_height, &temp1, ctx->width, height, y);
+    int _1 = 0; // placeholder
+    tr_priv_get_visible(&visible_height, &_1, ctx->width, height, y);
     if (visible_height <= 0)
         return TR_OK;
 
