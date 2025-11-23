@@ -52,14 +52,14 @@ Check the comments in the header for detailed info.
 #include <stdio.h>
 
 int main(void) {
-    tr_add_effects(TR_UNDERLINE | TR_BOLD);      // Add effects.
-    tr_set_fg(tr_rgb(255, 0, 0), TR_COLOR_TRUE); // Set foreground color to red using rgb (True colors)
-    tr_set_bg(TR_BLUE_256, TR_COLOR_256);        // Set background color to blue using ANSI 256.
+    tr_add_effects(TR_UNDERLINE | TR_BOLD); // Add effects.
+    tr_set_fg(tr_rgb(255, 0, 0));           // Set foreground color to red using rgb (True colors)
+    tr_set_bg(TR_BLUE_256);                 // Set background color to blue using ANSI 256.
     printf("Hello, ");
 
-    tr_remove_effects(TR_UNDERLINE);            // Remove effects.
+    tr_remove_effects(TR_UNDERLINE); // Remove effects.
     tr_add_effects(TR_BLINK);
-    tr_set_bg(TR_BRIGHT_GREEN_16, TR_COLOR_16); // Set background color to bright green using ANSI 16.
+    tr_set_bg(TR_BRIGHT_GREEN_16);   // Set background color to bright green using ANSI 16.
     printf("World!");
 
     tr_reset_all(); // Reset effects, fg, bg to default.
@@ -86,11 +86,11 @@ int main(void) {
         if (_kbhit() && _getch() == ESC)
             break;
         
-        if (tr_ctx_clear(&ctx, TR_WHITE_16, TR_COLOR_16) != TR_OK)
+        if (tr_ctx_clear(&ctx, TR_WHITE_16) != TR_OK)
             break;
 
         // Draw an orange rect in the middle.
-        if (tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE, TR_COLOR_TRUE) != TR_OK)
+        if (tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE) != TR_OK)
             break;
 
         if (tr_ctx_render(&ctx) != TR_OK)
