@@ -61,8 +61,8 @@ TrResult draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
     sprintf(str, "%c: %3d", ch, rgb[idx]);
 
     TrStyle style = {
-        .fg = tr_default_color(),
-        .bg = tr_default_color(),
+        .fg = TR_DEFAULT_COLOR_16,
+        .bg = TR_DEFAULT_COLOR_16,
         .effects = idx == target ? TR_UNDERLINE : TR_DEFAULT_EFFECT
     };
 
@@ -102,13 +102,13 @@ int main(void) {
     while (alive) {
         process_input(rgb, &target, &alive);
 
-        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
+        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16);
 
         MY_CHK(draw_color(&ctx, rgb, R, target));
         MY_CHK(draw_color(&ctx, rgb, G, target));
         MY_CHK(draw_color(&ctx, rgb, B, target));
 
-        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 1, 21, 4, tr_rgb(rgb[R], rgb[G], rgb[B]), TR_COLOR_TRUE));
+        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 1, 21, 4, tr_rgb(rgb[R], rgb[G], rgb[B])));
 
         MY_CHK(tr_ctx_render(&ctx));
     }

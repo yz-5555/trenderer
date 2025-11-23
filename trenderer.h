@@ -92,9 +92,11 @@ TR_API void tr_set_bg(uint32_t bg_color); // Set background color of current buf
 
 // Color - Utility functions
 // ----------------------------------------------------------------------------
-#define TR_COLOR_16 0
-#define TR_COLOR_256 1
-#define TR_COLOR_TRUE 2
+typedef enum TrColorMode {
+    TR_COLOR_16,
+    TR_COLOR_256,
+    TR_COLOR_TRUE,
+} TrColorMode;
 
 TR_API uint32_t tr_color_16(uint8_t color);              // Create an ANSI 16 value.
 TR_API uint32_t tr_color_256(uint8_t color);             // Create an ANSI 256 value.
@@ -103,8 +105,8 @@ TR_API uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b); // Create a rgb value.
 TR_API uint8_t tr_rgb_r(uint32_t rgb);                   // Get `r` of a rgb value.
 TR_API uint8_t tr_rgb_g(uint32_t rgb);                   // Get 'g' of a rgb value.
 TR_API uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
-TR_API uint8_t tr_color_code(uint32_t color);            // Get color code of a color. (ANSI 16 and ANSI 256 only)
-TR_API uint8_t tr_color_mode(uint32_t color);            // Get color mode of a color.
+TR_API uint32_t tr_color_code(uint32_t color);           // Get color code of a color. (ANSI 16 and ANSI 256 only)
+TR_API TrColorMode tr_color_mode(uint32_t color);        // Get color mode of a color.
 // ----------------------------------------------------------------------------
 
 // Color - Constants - ANSI 16
@@ -422,29 +424,33 @@ TR_API void tr_set_fg(uint32_t fg_color) {
     if (fg_color == TR_TRANSPARENT)
         return;
 
-    switch (tr_color_mode(fg_color)) {
+    TrColorMode mode = tr_color_mode(fg_color);
+
+    switch (mode) {
     case TR_COLOR_16:
     case TR_COLOR_256:
-        printf(tr_priv_fg_ansi[fg], fg_color);
+        printf(tr_priv_fg_ansi[mode], fg_color);
         break;
     case TR_COLOR_TRUE:
-        printf(tr_priv_fg_ansi[fg], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
+        printf(tr_priv_fg_ansi[mode], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
         break;
     }
 }
-TR_API void tr_set_bg(uint32_t bg_color, uint32_tMode bg) {
+TR_API void tr_set_bg(uint32_t bg_color) {
     if (bg_color == TR_TRANSPARENT)
         return;
 
-    switch (bg) {
+    TrColorMode mode = tr_color_mode(bg_color);
+
+    switch (mode) {
     case TR_COLOR_16:
-        printf(tr_priv_bg_ansi[bg], 10 + bg_color);
+        printf(tr_priv_bg_ansi[mode], 10 + bg_color);
         break;
     case TR_COLOR_256:
-        printf(tr_priv_bg_ansi[bg], bg_color);
+        printf(tr_priv_bg_ansi[mode], bg_color);
         break;
     case TR_COLOR_TRUE:
-        printf(tr_priv_bg_ansi[bg], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
+        printf(tr_priv_bg_ansi[mode], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
         break;
     }
 }
@@ -480,7 +486,14 @@ TR_API uint8_t tr_rgb_g(uint32_t rgb) {
 TR_API uint8_t tr_rgb_b(uint32_t rgb) {
     return (rgb >> 8) & 0xFF;
 }
-TR_API uint8_t tr_color_mode(uint32_t color) {
+TR_API uint32_t tr_color_code(uint32_t color) {
+    if (color == TR_TRANSPARENT)
+        return TR_TRANSPARENT;
+    return color >> 8;
+}
+TR_API TrColorMode tr_color_mode(uint32_t color) {
+    if (color == TR_TRANSPARENT)
+        return TR_COLOR_16; // TR_TRANSPARENT doesn't have any color mode actually. The reason it returns TR_COLOR_16 is just because it's default value.
     return color & 0xFF;
 }
 // ----------------------------------------------------------------------------
@@ -514,23 +527,19 @@ TR_API uint8_t tr_color_mode(uint32_t color) {
 TR_API TrStyle tr_default_style(void) {
     return (TrStyle){
         .effects = TR_DEFAULT_EFFECT,
-        .fg.code = TR_DEFAULT_COLOR_16,
-        .fg.mode = TR_COLOR_16,
-        .bg.code = TR_DEFAULT_COLOR_16,
-        .bg.mode = TR_COLOR_16
+        .fg = TR_DEFAULT_COLOR_16,
+        .bg = TR_DEFAULT_COLOR_16,
     };
 }
 TR_API void tr_set_style(TrStyle style) {
     tr_add_effects(style.effects);
-    tr_set_fg(style.fg.code, style.fg.mode);
-    tr_set_bg(style.bg.code, style.bg.mode);
+    tr_set_fg(style.fg);
+    tr_set_bg(style.bg);
 }
 TR_API void tr_copy_style(TrStyle *dst, TrStyle src) {
     dst->effects = src.effects;
-    dst->fg.code = src.fg.code;
-    dst->fg.mode = src.fg.mode;
-    dst->bg.code = src.bg.code;
-    dst->bg.mode = src.bg.mode;
+    dst->fg = src.fg;
+    dst->bg = src.bg;
 }
 // ============================================================================
 
@@ -546,7 +555,7 @@ TR_API TrResult tr_carr_init(TrCellArray *carr, int width, int height) {
     carr->width = width;
     carr->height = height;
 
-    tr_clear_buf(tr_atos(carr), TR_DEFAULT_COLOR_16, TR_COLOR_16);
+    tr_clear_buf(tr_atos(carr), TR_DEFAULT_COLOR_16);
 
     return TR_OK;
 }
@@ -578,7 +587,7 @@ TR_API TrResult tr_cvec_init(TrCellVector *cvec, int width, int height) {
     if (cvec->bg == NULL)
         return TR_ERR_ALLOC_FAIL;
 
-    tr_clear_buf(*cvec, TR_DEFAULT_COLOR_16, TR_COLOR_16);
+    tr_clear_buf(*cvec, TR_DEFAULT_COLOR_16);
 
     return TR_OK;
 }
@@ -632,16 +641,14 @@ static TrResult tr_priv_emit_ansi(char *dst, size_t len, size_t *idx, TrStyle *c
         curr->effects = sprite.effects[spr_idx];
     }
 
-    if (curr->fg.code != sprite.fg[spr_idx].code || curr->fg.mode != sprite.fg[spr_idx].mode) {
-        TR_CHK(tr_strcat_set_fg(dst, len, idx, sprite.fg[spr_idx].code, sprite.fg[spr_idx].mode));
-        curr->fg.code = sprite.fg[spr_idx].code;
-        curr->fg.mode = sprite.fg[spr_idx].mode;
+    if (curr->fg != sprite.fg[spr_idx]) {
+        TR_CHK(tr_strcat_set_fg(dst, len, idx, sprite.fg[spr_idx]));
+        curr->fg = sprite.fg[spr_idx];
     }
 
-    if (curr->bg.code != sprite.bg[spr_idx].code || curr->bg.mode != sprite.bg[spr_idx].mode) {
-        TR_CHK(tr_strcat_set_bg(dst, len, idx, sprite.bg[spr_idx].code, sprite.bg[spr_idx].mode));
-        curr->bg.code = sprite.bg[spr_idx].code;
-        curr->bg.mode = sprite.bg[spr_idx].mode;
+    if (curr->bg != sprite.bg[spr_idx]) {
+        TR_CHK(tr_strcat_set_bg(dst, len, idx, sprite.bg[spr_idx]));
+        curr->bg = sprite.bg[spr_idx];
     }
 
     return TR_OK;
@@ -698,35 +705,39 @@ TR_API TrResult tr_strcat_reset_all(char *dst, size_t len, size_t *idx) {
 
 // Color
 // ----------------------------------------------------------------------------
-TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg_color, uint32_tMode fg) {
+TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg_color) {
     if (fg_color == TR_TRANSPARENT)
         return TR_OK;
 
-    switch (fg) {
+    TrColorMode mode = tr_color_mode(fg_color);
+
+    switch (mode) {
     case TR_COLOR_16:
     case TR_COLOR_256:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[fg], fg_color);
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[mode], fg_color);
         break;
     case TR_COLOR_TRUE:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[fg], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[mode], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
         break;
     }
 
     return TR_OK;
 }
-TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg_color, uint32_tMode bg) {
+TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg_color) {
     if (bg_color == TR_TRANSPARENT)
         return TR_OK;
 
-    switch (bg) {
+    TrColorMode mode = tr_color_mode(bg_color);
+
+    switch (mode) {
     case TR_COLOR_16:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[bg], 10 + bg_color);
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], 10 + bg_color);
         break;
     case TR_COLOR_256:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[bg], bg_color);
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], bg_color);
         break;
     case TR_COLOR_TRUE:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[bg], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
         break;
     }
 
@@ -742,10 +753,8 @@ TR_API TrResult tr_draw_sprite(TrCellSpan sprite, int x, int y) {
 
     TrStyle curr = {
         .effects = TR_DEFAULT_EFFECT,
-        .fg.code = TR_DEFAULT_COLOR_16,
-        .fg.mode = TR_COLOR_16,
-        .bg.code = TR_DEFAULT_COLOR_16,
-        .bg.mode = TR_COLOR_16,
+        .fg = TR_DEFAULT_COLOR_16,
+        .bg = TR_DEFAULT_COLOR_16,
     };
     size_t raw_buf_idx = 0;
     char raw_buf[TR_MAX_RAW_BUFFER_LEN];
@@ -763,10 +772,9 @@ TR_API TrResult tr_draw_sprite(TrCellSpan sprite, int x, int y) {
                 return TR_ERR_BUF_OVERFLOW;
         }
 
-        if (curr.bg.code != TR_DEFAULT_COLOR_16 || curr.bg.mode != TR_COLOR_16) {
-            curr.bg.code = TR_DEFAULT_COLOR_16;
-            curr.bg.mode = TR_COLOR_16;
-            TR_CHK(tr_strcat_set_bg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, curr.bg.code, curr.bg.mode));
+        if (curr.bg != TR_DEFAULT_COLOR_16) {
+            curr.bg = TR_DEFAULT_COLOR_16;
+            TR_CHK(tr_strcat_set_bg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, curr.bg));
         }
     }
     TR_CHK(tr_strcat_reset_all(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx));
@@ -791,10 +799,8 @@ TR_API TrResult tr_draw_spritesheet(TrCellSpan ss, int spr_x, int spr_y, int spr
 
     TrStyle curr = {
         .effects = TR_DEFAULT_EFFECT,
-        .fg.code = TR_DEFAULT_COLOR_16,
-        .fg.mode = TR_COLOR_16,
-        .bg.code = TR_DEFAULT_COLOR_16,
-        .bg.mode = TR_COLOR_16,
+        .fg = TR_DEFAULT_COLOR_16,
+        .bg = TR_DEFAULT_COLOR_16,
     };
     size_t raw_buf_idx = 0;
     char raw_buf[TR_MAX_RAW_BUFFER_LEN];
@@ -814,10 +820,9 @@ TR_API TrResult tr_draw_spritesheet(TrCellSpan ss, int spr_x, int spr_y, int spr
                 return TR_ERR_BUF_OVERFLOW;
         }
 
-        if (curr.bg.code != TR_DEFAULT_COLOR_16 || curr.bg.mode != TR_COLOR_16) {
-            curr.bg.code = TR_DEFAULT_COLOR_16;
-            curr.bg.mode = TR_COLOR_16;
-            TR_CHK(tr_strcat_set_bg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, curr.bg.code, curr.bg.mode));
+        if (curr.bg != TR_DEFAULT_COLOR_16) {
+            curr.bg = TR_DEFAULT_COLOR_16;
+            TR_CHK(tr_strcat_set_bg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, curr.bg));
         }
     }
     TR_CHK(tr_strcat_reset_all(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx));
@@ -837,8 +842,8 @@ TR_API TrResult tr_draw_text(const char *text, TrStyle style, int x, int y) {
     TR_CHK(tr_strcat_move_cursor(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, x, y));
     TR_CHK(tr_strcat_reset_effects(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx));
     TR_CHK(tr_strcat_add_effects(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, style.effects));
-    TR_CHK(tr_strcat_set_fg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, style.fg.code, style.fg.mode));
-    TR_CHK(tr_strcat_set_bg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, style.bg.code, style.bg.mode));
+    TR_CHK(tr_strcat_set_fg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, style.fg));
+    TR_CHK(tr_strcat_set_bg(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, style.bg));
 
     TR_CHK(tr_priv_strcat(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, text));
 
@@ -892,16 +897,10 @@ static bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx) {
     if (ctx->front.effects[idx] != ctx->back.effects[idx])
         return false;
 
-    if (ctx->front.fg[idx].code != ctx->back.fg[idx].code)
+    if (ctx->front.fg[idx] != ctx->back.fg[idx])
         return false;
 
-    if (ctx->front.fg[idx].mode != ctx->back.fg[idx].mode)
-        return false;
-
-    if (ctx->front.bg[idx].code != ctx->back.bg[idx].code)
-        return false;
-
-    if (ctx->front.bg[idx].mode != ctx->back.bg[idx].mode)
+    if (ctx->front.bg[idx] != ctx->back.bg[idx])
         return false;
 
     return true;
@@ -969,13 +968,13 @@ TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int h
     ctx->width = width;
     ctx->height = height;
 
-    tr_clear_buf(tr_ftos(&ctx->front, width, height), TR_DEFAULT_COLOR_16, TR_COLOR_16);
-    tr_clear_buf(tr_ftos(&ctx->back, width, height), TR_DEFAULT_COLOR_16, TR_COLOR_16);
+    tr_clear_buf(tr_ftos(&ctx->front, width, height), TR_DEFAULT_COLOR_16);
+    tr_clear_buf(tr_ftos(&ctx->back, width, height), TR_DEFAULT_COLOR_16);
 
     return TR_OK;
 }
-TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color, uint32_tMode bg) {
-    tr_clear_buf(tr_ftos(&ctx->back, ctx->width, ctx->height), bg_color, bg);
+TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color) {
+    tr_clear_buf(tr_ftos(&ctx->back, ctx->width, ctx->height), bg_color);
 }
 TR_API TrResult tr_ctx_render(TrRenderContext *ctx) {
     int dirty_rect_x = 0, dirty_rect_y = 0;
@@ -992,7 +991,7 @@ TR_API TrResult tr_ctx_render(TrRenderContext *ctx) {
 
     return TR_OK;
 }
-TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color, uint32_tMode color) {
+TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color) {
     if (width <= 0 || height <= 0 || color == TR_TRANSPARENT)
         return TR_ERR_BAD_ARG;
 
@@ -1019,10 +1018,8 @@ TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, 
         for (int col = 0; col < visible_width; col += 1) {
             int idx = col + fb_row_base; // [idx] == [y + row][x + col]
 
-            ctx->back.fg[idx].code = color;
-            ctx->back.fg[idx].mode = color;
-            ctx->back.bg[idx].code = color;
-            ctx->back.bg[idx].mode = color;
+            ctx->back.fg[idx] = color;
+            ctx->back.bg[idx] = color;
         }
     }
 
@@ -1057,17 +1054,15 @@ TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int 
         for (int col = 0; col < visible_width; col += 1) {
             int spr_idx = col + spr_row_base; // [spr_idx] == [spr_row + row][spr_col + col]
 
-            if (sprite.fg[spr_idx].code != TR_TRANSPARENT) {
+            if (sprite.fg[spr_idx] != TR_TRANSPARENT) {
                 int fb_idx = col + fb_row_base; // [fb_idx] == [y + row][x + col]
 
-                ctx->back.fg[fb_idx].code = sprite.fg[spr_idx].code;
-                ctx->back.fg[fb_idx].mode = sprite.fg[spr_idx].mode;
+                ctx->back.fg[fb_idx] = sprite.fg[spr_idx];
             }
-            if (sprite.bg[spr_idx].code != TR_TRANSPARENT) {
+            if (sprite.bg[spr_idx] != TR_TRANSPARENT) {
                 int fb_idx = col + fb_row_base; // [fb_idx] == [y + row][x + col]
 
-                ctx->back.bg[fb_idx].code = sprite.bg[spr_idx].code;
-                ctx->back.bg[fb_idx].mode = sprite.bg[spr_idx].mode;
+                ctx->back.bg[fb_idx] = sprite.bg[spr_idx];
             }
         }
     }
@@ -1094,10 +1089,8 @@ TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t 
         if (ctx->back.letter[fb_idx] == '\0')
             ctx->back.letter[fb_idx] = ' ';
         ctx->back.effects[fb_idx] = style.effects;
-        ctx->back.fg[fb_idx].code = style.fg.code;
-        ctx->back.fg[fb_idx].mode = style.fg.mode;
-        ctx->back.bg[fb_idx].code = style.bg.code;
-        ctx->back.bg[fb_idx].mode = style.bg.mode;
+        ctx->back.fg[fb_idx] = style.fg;
+        ctx->back.bg[fb_idx] = style.bg;
     }
 
     return TR_OK;
@@ -1132,17 +1125,15 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
 
 // Cell buffer
 // ----------------------------------------------------------------------------
-TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color, uint32_tMode bg) {
+TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color) {
     size_t len = (size_t)(buf.width * buf.height);
 
     memset(buf.letter, ' ', len * sizeof(char));
     memset(buf.effects, TR_DEFAULT_EFFECT, len * sizeof(TrEffect));
 
     for (size_t i = 0; i < len; i += 1) {
-        buf.fg[i].code = TR_DEFAULT_COLOR_16;
-        buf.fg[i].mode = TR_COLOR_16;
-        buf.bg[i].code = bg_color;
-        buf.bg[i].mode = bg;
+        buf.fg[i] = TR_DEFAULT_COLOR_16;
+        buf.bg[i] = bg_color;
     }
 }
 // ============================================================================

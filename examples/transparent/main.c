@@ -7,14 +7,16 @@
 #include <conio.h>
 #define ESC 27
 
-#define MY_CHK(x) if ((x) != TR_OK) alive = false
+#define MY_CHK(x)     \
+    if ((x) != TR_OK) \
+    alive = false
 
 void fill_box(TrCellArray *box) {
     for (int i = 0; i < box->width * box->height; i += 1) {
         box->letter[i] = 'o';
         box->effects[i] = TR_BOLD | TR_ITALIC | TR_UNDERLINE | TR_STRIKETHROUGH;
-        box->fg[i] = (TrColor){TR_BLACK_16, TR_COLOR_16};
-        box->bg[i] = (TrColor){TR_TRANSPARENT, TR_COLOR_TRUE};
+        box->fg[i] = TR_BLACK_16;
+        box->bg[i] = TR_TRANSPARENT;
     }
 }
 void process_input(int *pos_x, int *pos_y, bool *alive) {
@@ -56,12 +58,12 @@ int main(void) {
     while (alive) {
         process_input(&pos_x, &pos_y, &alive);
 
-        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16, TR_COLOR_16);
+        tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16);
 
-        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 0, 10, 5, TR_RED_16, TR_COLOR_16));
-        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 0, 10, 5, TR_ORANGE, TR_COLOR_TRUE));
-        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 5, 10, 5, TR_BRIGHT_CYAN_256, TR_COLOR_256));
-        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 5, 10, 5, TR_WHITE_16, TR_COLOR_16));
+        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 0, 10, 5, TR_RED_16));
+        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 0, 10, 5, TR_ORANGE));
+        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 5, 10, 5, TR_BRIGHT_CYAN_256));
+        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 5, 10, 5, TR_WHITE_16));
 
         MY_CHK(tr_ctx_draw_sprite(&ctx, tr_atos(&box), pos_x, pos_y));
 
@@ -71,5 +73,3 @@ int main(void) {
 
     return 0;
 }
-
-
