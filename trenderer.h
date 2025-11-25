@@ -92,12 +92,6 @@ TR_API void tr_set_bg(uint32_t bg_color); // Set background color of current buf
 
 // Color - Utility functions
 // ----------------------------------------------------------------------------
-typedef enum TrColorMode {
-    TR_COLOR_16,
-    TR_COLOR_256,
-    TR_COLOR_TRUE,
-} TrColorMode;
-
 TR_API uint32_t tr_color_16(uint8_t color);              // Create an ANSI 16 value.
 TR_API uint32_t tr_color_256(uint8_t color);             // Create an ANSI 256 value.
 TR_API uint32_t tr_gray_256(uint8_t scale);              // Create a gray scale value in ANSI 256 colors.
@@ -105,10 +99,14 @@ TR_API uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b); // Create a rgb value.
 TR_API uint8_t tr_rgb_r(uint32_t rgb);                   // Get `r` of a rgb value.
 TR_API uint8_t tr_rgb_g(uint32_t rgb);                   // Get 'g' of a rgb value.
 TR_API uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
-TR_API uint32_t tr_color_code(uint32_t color);           // Get color code of a color. (ANSI 16 and ANSI 256 only)
-TR_API TrColorMode tr_color_mode(uint32_t color);        // Get color mode of a color.
+TR_API uint32_t tr_color_code(uint32_t color);           // Get color code of a color.
+TR_API uint32_t tr_color_mode(uint32_t color);           // Get color mode of a color.
 // ----------------------------------------------------------------------------
 
+// Color - Constants - Color modes
+#define TR_COLOR_16 0
+#define TR_COLOR_256 1
+#define TR_COLOR_TRUE 2
 // Color - Constants - ANSI 16
 // ----------------------------------------------------------------------------
 #define TR_BLACK_16 tr_color_16(30)
@@ -170,7 +168,8 @@ TR_API TrColorMode tr_color_mode(uint32_t color);        // Get color mode of a 
 #define TR_SKYBLUE tr_rgb(135, 206, 235)
 // ----------------------------------------------------------------------------
 
-#define TR_TRANSPARENT 0xFFFFFFFF // This is not a drawable value. It's meant to be used in software rendering.
+#define TR_TRANSPARENT 0xFF // This is not a drawable value. It's meant to be used in software rendering.
+#define TR_BAD_COLOR 0xFE   // This is not a drawable value. If Color - utility functions return this value, it means the passed value is DEVASTATED.
 // ============================================================================
 
 #ifndef TR_NO_RENDERER
@@ -314,7 +313,7 @@ TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color); // Clear a cell buf
 
 #endif // TR_H
 
-#define TR_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
+// #define TR_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
 
 #ifdef TR_IMPLEMENTATION
 
@@ -421,10 +420,10 @@ static const char *tr_priv_bg_ansi[] = {
     "\x1b[48;2;%d;%d;%dm"
 };
 TR_API void tr_set_fg(uint32_t fg_color) {
-    if (fg_color == TR_TRANSPARENT)
+    if (fg_color == TR_TRANSPARENT || fg_color == TR_BAD_COLOR)
         return;
 
-    TrColorMode mode = tr_color_mode(fg_color);
+    uint32_t mode = tr_color_mode(fg_color);
 
     switch (mode) {
     case TR_COLOR_16:
@@ -437,10 +436,10 @@ TR_API void tr_set_fg(uint32_t fg_color) {
     }
 }
 TR_API void tr_set_bg(uint32_t bg_color) {
-    if (bg_color == TR_TRANSPARENT)
+    if (bg_color == TR_TRANSPARENT || bg_color == TR_BAD_COLOR)
         return;
 
-    TrColorMode mode = tr_color_mode(bg_color);
+    uint32_t mode = tr_color_mode(bg_color);
 
     switch (mode) {
     case TR_COLOR_16:
@@ -466,35 +465,50 @@ TR_API uint32_t tr_color_16(uint8_t color) {
     if (39 < color && color < 90)
         return TR_DEFAULT_COLOR_16;
 
-    return ((uint32_t)color << 8) | TR_COLOR_16;
+    return (TR_COLOR_16 << 24) | (uint32_t)color;
 }
 TR_API uint32_t tr_color_256(uint8_t color) {
-    return ((uint32_t)color << 8) | TR_COLOR_256;
+    return (TR_COLOR_256 << 24) | (uint32_t)color;
 }
 TR_API uint32_t tr_gray_256(uint8_t scale) {
-    return (scale > 23) ? 255 : (232 + scale);
+    return (TR_COLOR_256 << 24) | (uint32_t)((scale > 23) ? 255 : (232 + scale));
 }
 TR_API uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b) {
-    return ((uint32_t)r << 24) | ((uint32_t)g << 16) | ((uint32_t)b << 8) | TR_COLOR_TRUE;
+    return (TR_COLOR_TRUE << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
 }
 TR_API uint8_t tr_rgb_r(uint32_t rgb) {
-    return (rgb >> 24) & 0xFF;
-}
-TR_API uint8_t tr_rgb_g(uint32_t rgb) {
+    if (tr_color_mode(rgb) != TR_COLOR_TRUE)
+        return TR_BAD_COLOR;
+
     return (rgb >> 16) & 0xFF;
 }
-TR_API uint8_t tr_rgb_b(uint32_t rgb) {
+TR_API uint8_t tr_rgb_g(uint32_t rgb) {
+    if (tr_color_mode(rgb) != TR_COLOR_TRUE)
+        return TR_BAD_COLOR;
+
     return (rgb >> 8) & 0xFF;
 }
-TR_API uint32_t tr_color_code(uint32_t color) {
-    if (color == TR_TRANSPARENT)
-        return TR_TRANSPARENT;
-    return color >> 8;
+TR_API uint8_t tr_rgb_b(uint32_t rgb) {
+    if (tr_color_mode(rgb) != TR_COLOR_TRUE)
+        return TR_BAD_COLOR;
+
+    return rgb & 0xFF;
 }
-TR_API TrColorMode tr_color_mode(uint32_t color) {
+TR_API uint32_t tr_color_code(uint32_t color) {
+    if (tr_color_mode(color) == TR_COLOR_TRUE || color == TR_TRANSPARENT || color == TR_BAD_COLOR)
+        return color;
+    else
+        return color & 0xFF;
+}
+TR_API uint32_t tr_color_mode(uint32_t color) {
     if (color == TR_TRANSPARENT)
         return TR_COLOR_16; // TR_TRANSPARENT doesn't have any color mode actually. The reason it returns TR_COLOR_16 is just because it's default value.
-    return color & 0xFF;    // TODO: if some dumbass passes weird ass value to this function, color & 0xFF might not be one of TrColorMode eunms.
+
+    uint32_t mode = (color >> 24) & 0xFF;
+    if (mode <= TR_COLOR_TRUE)
+        return mode;
+    else
+        return TR_BAD_COLOR;
 }
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -709,7 +723,7 @@ TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg
     if (fg_color == TR_TRANSPARENT)
         return TR_OK;
 
-    TrColorMode mode = tr_color_mode(fg_color);
+    uint32_t mode = tr_color_mode(fg_color);
 
     switch (mode) {
     case TR_COLOR_16:
@@ -727,7 +741,7 @@ TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg
     if (bg_color == TR_TRANSPARENT)
         return TR_OK;
 
-    TrColorMode mode = tr_color_mode(bg_color);
+    uint32_t mode = tr_color_mode(bg_color);
 
     switch (mode) {
     case TR_COLOR_16:
