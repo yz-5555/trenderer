@@ -51,6 +51,17 @@
 extern "C" {
 #endif
 
+// Debug
+// ============================================================================
+typedef enum TrResult {
+    TR_OK,
+    TR_ERR_BAD_ARG,
+    TR_ERR_ALLOC_FAIL,
+    TR_ERR_BUF_OVERFLOW,
+    TR_ERR_OUT_OF_BOUNDS,
+} TrResult;
+
+// ============================================================================
 // Screen
 // ============================================================================
 TR_API void tr_clear(void);     // Clear the screen.
@@ -87,10 +98,11 @@ TR_API void tr_reset_all(void);                  // Reset current effects, color
 
 // Color
 // ============================================================================
-TR_API void tr_set_fg(uint32_t fg_color); // Set foreground color of current buffer.
-TR_API void tr_set_bg(uint32_t bg_color); // Set background color of current buffer.
+TR_API TrResult tr_set_fg(uint32_t fg); // Set foreground color of current buffer.
+TR_API TrResult tr_set_bg(uint32_t bg); // Set background color of current buffer.
 
 // Color - Utility functions
+// NOTE: Since these functions do NOT check if the color is valid or not, make sure to use `tr_valid_color` before passing the color if you manually created the color value.
 // ----------------------------------------------------------------------------
 TR_API uint32_t tr_color_16(uint8_t color);              // Create an ANSI 16 value.
 TR_API uint32_t tr_color_256(uint8_t color);             // Create an ANSI 256 value.
@@ -101,12 +113,16 @@ TR_API uint8_t tr_rgb_g(uint32_t rgb);                   // Get 'g' of a rgb val
 TR_API uint8_t tr_rgb_b(uint32_t rgb);                   // Get `b` of a rgb value.
 TR_API uint32_t tr_color_code(uint32_t color);           // Get color code of a color.
 TR_API uint32_t tr_color_mode(uint32_t color);           // Get color mode of a color.
+TR_API bool tr_valid_color(uint32_t color);              // Check if the color is valid or not.
 // ----------------------------------------------------------------------------
 
 // Color - Constants - Color modes
+// ----------------------------------------------------------------------------
 #define TR_COLOR_16 0
 #define TR_COLOR_256 1
 #define TR_COLOR_TRUE 2
+// ----------------------------------------------------------------------------
+
 // Color - Constants - ANSI 16
 // ----------------------------------------------------------------------------
 #define TR_BLACK_16 tr_color_16(30)
@@ -176,17 +192,6 @@ TR_API uint32_t tr_color_mode(uint32_t color);           // Get color mode of a 
 
 #include <stddef.h>
 
-// Debug
-// ============================================================================
-typedef enum TrResult {
-    TR_OK,
-    TR_ERR_BAD_ARG,
-    TR_ERR_ALLOC_FAIL,
-    TR_ERR_BUF_OVERFLOW,
-    TR_ERR_OUT_OF_BOUNDS,
-} TrResult;
-// ============================================================================
-
 // Styles
 // ============================================================================
 typedef struct TrStyle {
@@ -253,8 +258,8 @@ TR_API TrResult tr_strcat_reset_all(char *dst, size_t len, size_t *idx);        
 
 // Color
 // ----------------------------------------------------------------------------
-TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg_color); // Append a string that set fg color to dst.
-TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg_color); // Append a string that set bg color to dst.
+TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg); // Append a string that set fg color to dst.
+TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg); // Append a string that set bg color to dst.
 // ----------------------------------------------------------------------------
 
 // Rendering functions
@@ -284,7 +289,7 @@ typedef struct TrRenderContext { // Render context for double-buffering. It hold
     int width, height;
 } TrRenderContext;
 TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int height);                            // Initialize the context.
-TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color);                                                 // Clear `back`.
+TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg);                                                       // Clear `back`.
 TR_API TrResult tr_ctx_render(TrRenderContext *ctx);                                                               // Render the result using dirty rectangles.
 TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color);       // Draw a rectangle on `back`.
 TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int x, int y);                         // Draw a sprite on `back`.
@@ -302,7 +307,7 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height); // Stan
 
 // Cell buffer
 // ----------------------------------------------------------------------------
-TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color); // Clear a cell buffer
+TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg); // Clear a cell buffer
 // ----------------------------------------------------------------------------
 // ============================================================================
 #endif // TR_NO_RENDERER
@@ -313,7 +318,7 @@ TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color); // Clear a cell buf
 
 #endif // TR_H
 
-// #define TR_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
+#define TR_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
 
 #ifdef TR_IMPLEMENTATION
 
@@ -419,52 +424,48 @@ static const char *tr_priv_bg_ansi[] = {
     "\x1b[48;5;%dm",
     "\x1b[48;2;%d;%d;%dm"
 };
-TR_API void tr_set_fg(uint32_t fg_color) {
-    if (fg_color == TR_TRANSPARENT || fg_color == TR_BAD_COLOR)
-        return;
+TR_API TrResult tr_set_fg(uint32_t fg) {
+    if (fg == TR_TRANSPARENT || !tr_valid_color(fg))
+        return TR_ERR_BAD_ARG;
 
-    uint32_t mode = tr_color_mode(fg_color);
+    uint32_t mode = tr_color_mode(fg);
 
     switch (mode) {
     case TR_COLOR_16:
     case TR_COLOR_256:
-        printf(tr_priv_fg_ansi[mode], tr_color_code(fg_color));
+        printf(tr_priv_fg_ansi[mode], tr_color_code(fg));
         break;
     case TR_COLOR_TRUE:
-        printf(tr_priv_fg_ansi[mode], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
+        printf(tr_priv_fg_ansi[mode], tr_rgb_r(fg), tr_rgb_g(fg), tr_rgb_b(fg));
         break;
     }
+
+    return TR_OK;
 }
-TR_API void tr_set_bg(uint32_t bg_color) {
-    if (bg_color == TR_TRANSPARENT || bg_color == TR_BAD_COLOR)
-        return;
+TR_API TrResult tr_set_bg(uint32_t bg) {
+    if (bg == TR_TRANSPARENT || !tr_valid_color(bg))
+        return TR_ERR_BAD_ARG;
 
-    uint32_t mode = tr_color_mode(bg_color);
+    uint32_t mode = tr_color_mode(bg);
 
     switch (mode) {
     case TR_COLOR_16:
-        printf(tr_priv_bg_ansi[mode], 10 + tr_color_code(bg_color));
+        printf(tr_priv_bg_ansi[mode], 10 + tr_color_code(bg));
         break;
     case TR_COLOR_256:
-        printf(tr_priv_bg_ansi[mode], tr_color_code(bg_color));
+        printf(tr_priv_bg_ansi[mode], tr_color_code(bg));
         break;
     case TR_COLOR_TRUE:
-        printf(tr_priv_bg_ansi[mode], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
+        printf(tr_priv_bg_ansi[mode], tr_rgb_r(bg), tr_rgb_g(bg), tr_rgb_b(bg));
         break;
     }
+
+    return TR_OK;
 }
 
 // Color - Utility functions
 // ----------------------------------------------------------------------------
 TR_API uint32_t tr_color_16(uint8_t color) {
-    // NOTE: The code below might look dirty but it's reasonable. Valid color codes in ANSI 16 are 30-37, 39, 90-97.
-    if (color < 30 || color > 97)
-        return TR_DEFAULT_COLOR_16;
-    if (color == 38)
-        return TR_DEFAULT_COLOR_16;
-    if (39 < color && color < 90)
-        return TR_DEFAULT_COLOR_16;
-
     return (TR_COLOR_16 << 24) | (uint32_t)color;
 }
 TR_API uint32_t tr_color_256(uint8_t color) {
@@ -477,38 +478,37 @@ TR_API uint32_t tr_rgb(uint8_t r, uint8_t g, uint8_t b) {
     return (TR_COLOR_TRUE << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
 }
 TR_API uint8_t tr_rgb_r(uint32_t rgb) {
-    if (tr_color_mode(rgb) != TR_COLOR_TRUE)
-        return TR_BAD_COLOR;
-
     return (rgb >> 16) & 0xFF;
 }
 TR_API uint8_t tr_rgb_g(uint32_t rgb) {
-    if (tr_color_mode(rgb) != TR_COLOR_TRUE)
-        return TR_BAD_COLOR;
-
     return (rgb >> 8) & 0xFF;
 }
 TR_API uint8_t tr_rgb_b(uint32_t rgb) {
-    if (tr_color_mode(rgb) != TR_COLOR_TRUE)
-        return TR_BAD_COLOR;
-
     return rgb & 0xFF;
 }
 TR_API uint32_t tr_color_code(uint32_t color) {
-    if (tr_color_mode(color) == TR_COLOR_TRUE || color == TR_TRANSPARENT || color == TR_BAD_COLOR)
+    if (tr_color_mode(color) == TR_COLOR_TRUE)
         return color;
     else
         return color & 0xFF;
 }
 TR_API uint32_t tr_color_mode(uint32_t color) {
-    if (color == TR_TRANSPARENT)
-        return TR_COLOR_16; // TR_TRANSPARENT doesn't have any color mode actually. The reason it returns TR_COLOR_16 is just because it's default value.
+    return (color >> 24) & 0xFF;
+}
+TR_API bool tr_valid_color(uint32_t color) {
+    uint32_t mode = tr_color_mode(color);
 
-    uint32_t mode = (color >> 24) & 0xFF;
-    if (mode <= TR_COLOR_TRUE)
-        return mode;
-    else
-        return TR_BAD_COLOR;
+    if (mode > TR_COLOR_TRUE)
+        return false;
+
+    if (mode == TR_COLOR_16) {
+        if (color < 30 || color > 97)
+            return false;
+        if (38 <= color && color < 90)
+            return false;
+    }
+
+    return true;
 }
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -719,39 +719,39 @@ TR_API TrResult tr_strcat_reset_all(char *dst, size_t len, size_t *idx) {
 
 // Color
 // ----------------------------------------------------------------------------
-TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg_color) {
-    if (fg_color == TR_TRANSPARENT)
+TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg) {
+    if (fg == TR_TRANSPARENT)
         return TR_OK;
 
-    uint32_t mode = tr_color_mode(fg_color);
+    uint32_t mode = tr_color_mode(fg);
 
     switch (mode) {
     case TR_COLOR_16:
     case TR_COLOR_256:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[mode], tr_color_code(fg_color));
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[mode], tr_color_code(fg));
         break;
     case TR_COLOR_TRUE:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[mode], tr_rgb_r(fg_color), tr_rgb_g(fg_color), tr_rgb_b(fg_color));
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_fg_ansi[mode], tr_rgb_r(fg), tr_rgb_g(fg), tr_rgb_b(fg));
         break;
     }
 
     return TR_OK;
 }
-TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg_color) {
-    if (bg_color == TR_TRANSPARENT)
+TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg) {
+    if (bg == TR_TRANSPARENT)
         return TR_OK;
 
-    uint32_t mode = tr_color_mode(bg_color);
+    uint32_t mode = tr_color_mode(bg);
 
     switch (mode) {
     case TR_COLOR_16:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], 10 + tr_color_code(bg_color));
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], 10 + tr_color_code(bg));
         break;
     case TR_COLOR_256:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], tr_color_code(bg_color));
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], tr_color_code(bg));
         break;
     case TR_COLOR_TRUE:
-        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], tr_rgb_r(bg_color), tr_rgb_g(bg_color), tr_rgb_b(bg_color));
+        TR_PRIV_STRCAT_FMT(dst, len, idx, tr_priv_bg_ansi[mode], tr_rgb_r(bg), tr_rgb_g(bg), tr_rgb_b(bg));
         break;
     }
 
@@ -987,8 +987,8 @@ TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int h
 
     return TR_OK;
 }
-TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg_color) {
-    tr_clear_buf(tr_ftos(&ctx->back, ctx->width, ctx->height), bg_color);
+TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg) {
+    tr_clear_buf(tr_ftos(&ctx->back, ctx->width, ctx->height), bg);
 }
 TR_API TrResult tr_ctx_render(TrRenderContext *ctx) {
     int dirty_rect_x = 0, dirty_rect_y = 0;
@@ -1006,8 +1006,11 @@ TR_API TrResult tr_ctx_render(TrRenderContext *ctx) {
     return TR_OK;
 }
 TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color) {
-    if (width <= 0 || height <= 0 || color == TR_TRANSPARENT)
+    if (width <= 0 || height <= 0 || !tr_valid_color(color))
         return TR_ERR_BAD_ARG;
+
+    if (color == TR_TRANSPARENT)
+        return TR_OK;
 
     int visible_width = 0;
     int _0 = 0; // placeholder
@@ -1139,7 +1142,7 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
 
 // Cell buffer
 // ----------------------------------------------------------------------------
-TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color) {
+TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg) {
     size_t len = (size_t)(buf.width * buf.height);
 
     memset(buf.letter, ' ', len * sizeof(char));
@@ -1147,7 +1150,7 @@ TR_API void tr_clear_buf(TrCellSpan buf, uint32_t bg_color) {
 
     for (size_t i = 0; i < len; i += 1) {
         buf.fg[i] = TR_DEFAULT_COLOR_16;
-        buf.bg[i] = bg_color;
+        buf.bg[i] = bg;
     }
 }
 // ============================================================================
