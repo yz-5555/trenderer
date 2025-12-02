@@ -4,6 +4,7 @@
 #define TR_IMPLEMENTATION
 #include "trenderer.h"
 
+#include <Windows.h>
 #include <conio.h>
 #define ESC 27
 
@@ -45,7 +46,6 @@ int main(void) {
     int pos_x = 0;
     int pos_y = 0;
     bool alive = true;
-
     TrCellArray box;
     tr_carr_init(&box, 3, 3);
     fill_box(&box);
@@ -55,7 +55,7 @@ int main(void) {
 
     tr_open_alt();
     tr_hide_cursor();
-
+    SetConsoleOutputCP(CP_UTF8);
     TrResult r;
     while (alive) {
         process_input(&pos_x, &pos_y, &alive);

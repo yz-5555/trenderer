@@ -534,7 +534,7 @@ TR_API bool tr_valid_color(uint32_t color) {
         do {                           \
             TrResult _r;               \
             if ((_r = (x)) != TR_OK) { \
-		        printf("line: %d, func: %s, err: %d\n", __LINE__, __func__, _r);\
+		        /* printf("line: %d, func: %s, err: %d\n", __LINE__, __func__, _r); */ \
                 return _r;             \
 			}                          \
         } while (0)
@@ -648,7 +648,7 @@ static TrResult tr_priv_strcat(char *dst, size_t dst_len, size_t *idx, const cha
     if (*idx + src_len >= dst_len - 1)
         return TR_ERR_BUF_OVERFLOW;
 
-    memcpy(dst + (*idx), src, src_len);
+    memcpy(&dst[*idx], src, src_len);
     *idx += src_len;
 
     return TR_OK;
@@ -744,7 +744,6 @@ TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg
 }
 TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg) {
     if (bg == TR_TRANSPARENT || !tr_valid_color(bg)) {
-        printf("Look at this nigga %d, %d\n", tr_color_mode(bg), tr_color_code(bg));
         return TR_ERR_BAD_ARG;
     }
 
@@ -968,6 +967,18 @@ static void tr_priv_ctx_swap(TrRenderContext *ctx) {
     memcpy(ctx->front.fg, ctx->back.fg, len * sizeof(uint32_t));
     memcpy(ctx->front.bg, ctx->back.bg, len * sizeof(uint32_t));
 }
+static int tr_utf8_codepoint_len(const char *str) {
+    uint8_t b = (uint8_t)*str;
+    if (b < 0x80)
+        return 1;
+    if ((b & 0xE0) == 0xC0)
+        return 2;
+    if ((b & 0xF0) == 0xE0)
+        return 3;
+    if ((b & 0xF8) == 0xF0)
+        return 4;
+    return 1;
+}
 // ----------------------------------------------------------------------------
 TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int height) {
     if (x < 0 || y < 0 || width <= 0 || height <= 0 || (width * height > TR_MAX_FRAMEBUFFER_LEN)) {
@@ -1030,12 +1041,12 @@ TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, 
     for (int row = 0; row < visible_height; row += 1) {
         int fb_row_base = fb_base + row * ctx->width; // [fb_row_base] == [y + row][x]
 
-        memset(ctx->back.letter + fb_row_base, ' ', (size_t)visible_width * sizeof(char));
-        memset(ctx->back.effects + fb_row_base, TR_DEFAULT_EFFECT, (size_t)visible_width * sizeof(TrEffect));
+        memset(&ctx->back.effects[fb_row_base], TR_DEFAULT_EFFECT, (size_t)visible_width * sizeof(TrEffect));
 
         for (int col = 0; col < visible_width; col += 1) {
             int idx = col + fb_row_base; // [idx] == [y + row][x + col]
 
+            strcpy(ctx->back.letter[idx], " ");
             ctx->back.fg[idx] = color;
             ctx->back.bg[idx] = color;
         }
@@ -1066,8 +1077,8 @@ TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int 
         int fb_row_base = fb_base + row * ctx->width;     // [fb_row_base] == [y + row][x]
         int spr_row_base = spr_base + row * sprite.width; // [spr_row_base] == [spr_row + row][spr_col]
 
-        memcpy(ctx->back.letter + fb_row_base, sprite.letter + spr_row_base, (size_t)visible_width * TR_MAX_UTF8_LEN * sizeof(char));
-        memcpy(ctx->back.effects + fb_row_base, sprite.effects + spr_row_base, (size_t)visible_width * sizeof(TrEffect));
+        memcpy(&ctx->back.letter[fb_row_base], &sprite.letter[spr_row_base], (size_t)visible_width * TR_MAX_UTF8_LEN);
+        memcpy(&ctx->back.effects[fb_row_base], &sprite.effects[spr_row_base], (size_t)visible_width * sizeof(TrEffect));
 
         for (int col = 0; col < visible_width; col += 1) {
             int spr_idx = col + spr_row_base; // [spr_idx] == [spr_row + row][spr_col + col]
@@ -1099,13 +1110,16 @@ TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t 
 
     int fb_base = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width; // [fb_base] == [y or 0][x or 0]
 
-    memcpy(ctx->back.letter + fb_base, text + text_idx, (size_t)visible_len * sizeof(char));
-
     for (int col = 0; col < visible_len; col += 1) {
         int fb_idx = col + fb_base; // [fb_idx] == [y][x + col]
 
-        // if (ctx->back.letter[fb_idx] == '\0')
-        //     ctx->back.letter[fb_idx] = ' '; // Needs to be fixed
+        if (text[col] == '\0')
+            ctx->back.letter[fb_idx][0] = ' ';
+        else
+            ctx->back.letter[fb_idx][0] = text[col];
+
+        ctx->back.letter[fb_idx][1] = '\0';
+
         ctx->back.effects[fb_idx] = style.effects;
         ctx->back.fg[fb_idx] = style.fg;
         ctx->back.bg[fb_idx] = style.bg;
