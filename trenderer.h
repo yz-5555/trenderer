@@ -294,7 +294,7 @@ TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg);                    
 TR_API TrResult tr_ctx_render(TrRenderContext *ctx);                                                               // Render the result using dirty rectangles.
 TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color);       // Draw a rectangle on `back`.
 TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int x, int y);                         // Draw a sprite on `back`.
-TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y); // Draw a string on `back`.
+TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y); // Draw a string on `back`. NOTE: unicode not supported
 // TR_API void tr_ctx_draw_spritesheet(TrRenderContext *ctx, TrCellSpan ss, int spr_x, int spr_y, int spr_w, int spr_h, int x, int y); // Draw a sprite from a spritesheet on `back`.
 // ============================================================================
 
@@ -505,7 +505,9 @@ TR_API bool tr_valid_color(uint32_t color) {
     if (mode == TR_COLOR_16) {
         if (color < 30 || color > 97)
             return false;
-        if (38 <= color && color < 90)
+        if (color == 38)
+            return false;
+        if (39 < color && color < 90)
             return false;
     }
 
@@ -528,11 +530,13 @@ TR_API bool tr_valid_color(uint32_t color) {
 #endif
 
 #ifndef TR_CHK
-    #define TR_CHK(x)                \
-        do {                         \
-            TrResult _r;             \
-            if ((_r = (x)) != TR_OK) \
-                return _r;           \
+    #define TR_CHK(x)                  \
+        do {                           \
+            TrResult _r;               \
+            if ((_r = (x)) != TR_OK) { \
+		        printf("line: %d, func: %s, err: %d\n", __LINE__, __func__, _r);\
+                return _r;             \
+			}                          \
         } while (0)
 #endif
 // clang-format on
@@ -739,8 +743,10 @@ TR_API TrResult tr_strcat_set_fg(char *dst, size_t len, size_t *idx, uint32_t fg
     return TR_OK;
 }
 TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg) {
-    if (bg == TR_TRANSPARENT || !tr_valid_color(bg))
+    if (bg == TR_TRANSPARENT || !tr_valid_color(bg)) {
+        printf("Look at this nigga %d, %d\n", tr_color_mode(bg), tr_color_code(bg));
         return TR_ERR_BAD_ARG;
+    }
 
     uint32_t mode = tr_color_mode(bg);
 
@@ -781,10 +787,7 @@ TR_API TrResult tr_draw_sprite(TrCellSpan sprite, int x, int y) {
             int spr_idx = col + row * sprite.width; // [spr_idx] == [row][col]
 
             TR_CHK(tr_priv_emit_ansi(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, &curr, sprite, spr_idx));
-
-            raw_buf[raw_buf_idx++] = sprite.letter[spr_idx]; // Needs to be fixed
-            if (raw_buf_idx >= TR_MAX_RAW_BUFFER_LEN - 1)
-                return TR_ERR_BUF_OVERFLOW;
+            TR_CHK(tr_priv_strcat(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, sprite.letter[spr_idx]));
         }
 
         if (curr.bg != TR_DEFAULT_COLOR_16) {
@@ -829,10 +832,7 @@ TR_API TrResult tr_draw_spritesheet(TrCellSpan ss, int spr_x, int spr_y, int spr
             int spr_idx = col + spr_row_base; // [spr_idx] == [spr_y + row][spr_x + col]
 
             TR_CHK(tr_priv_emit_ansi(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, &curr, ss, spr_idx));
-
-            raw_buf[raw_buf_idx++] = ss.letter[spr_idx]; // Needs to be fixed
-            if (raw_buf_idx >= TR_MAX_RAW_BUFFER_LEN - 1)
-                return TR_ERR_BUF_OVERFLOW;
+            TR_CHK(tr_priv_strcat(raw_buf, TR_MAX_RAW_BUFFER_LEN, &raw_buf_idx, ss.letter[spr_idx]));
         }
 
         if (curr.bg != TR_DEFAULT_COLOR_16) {
@@ -1066,7 +1066,7 @@ TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int 
         int fb_row_base = fb_base + row * ctx->width;     // [fb_row_base] == [y + row][x]
         int spr_row_base = spr_base + row * sprite.width; // [spr_row_base] == [spr_row + row][spr_col]
 
-        memcpy(ctx->back.letter + fb_row_base, sprite.letter + spr_row_base, (size_t)visible_width * sizeof(char));
+        memcpy(ctx->back.letter + fb_row_base, sprite.letter + spr_row_base, (size_t)visible_width * TR_MAX_UTF8_LEN * sizeof(char));
         memcpy(ctx->back.effects + fb_row_base, sprite.effects + spr_row_base, (size_t)visible_width * sizeof(TrEffect));
 
         for (int col = 0; col < visible_width; col += 1) {
@@ -1104,8 +1104,8 @@ TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t 
     for (int col = 0; col < visible_len; col += 1) {
         int fb_idx = col + fb_base; // [fb_idx] == [y][x + col]
 
-        if (ctx->back.letter[fb_idx] == '\0')
-            ctx->back.letter[fb_idx] = ' '; // Needs to be fixed
+        // if (ctx->back.letter[fb_idx] == '\0')
+        //     ctx->back.letter[fb_idx] = ' '; // Needs to be fixed
         ctx->back.effects[fb_idx] = style.effects;
         ctx->back.fg[fb_idx] = style.fg;
         ctx->back.bg[fb_idx] = style.bg;
@@ -1146,10 +1146,8 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
 TR_API void tr_fill_buf(TrCellSpan buf, uint32_t bg) {
     size_t len = (size_t)(buf.width * buf.height);
 
-    memset(buf.letter, ' ', len * sizeof(char));
     for (size_t i = 0; i < len; i += 1) {
-        buf.letter[i][0] = ' ';
-        memset(&buf.letter[i][1], 0, TR_MAX_UTF8_LEN - 1);
+        strcpy(buf.letter[i], " ");
     }
     memset(buf.effects, TR_DEFAULT_EFFECT, len * sizeof(TrEffect));
 

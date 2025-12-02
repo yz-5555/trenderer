@@ -7,13 +7,13 @@
 #include <conio.h>
 #define ESC 27
 
-#define MY_CHK(x)     \
-    if ((x) != TR_OK) \
-    alive = false
+#define MY_CHK(x)         \
+    if ((r = x) != TR_OK) \
+    break
 
 void fill_box(TrCellArray *box) {
     for (int i = 0; i < box->width * box->height; i += 1) {
-        box->letter[i] = 'o';
+        strcpy(box->letter[i], "✓");
         box->effects[i] = TR_BOLD | TR_ITALIC | TR_UNDERLINE | TR_STRIKETHROUGH;
         box->fg[i] = TR_BLACK_16;
         box->bg[i] = TR_TRANSPARENT;
@@ -55,6 +55,8 @@ int main(void) {
 
     tr_open_alt();
     tr_hide_cursor();
+
+    TrResult r;
     while (alive) {
         process_input(&pos_x, &pos_y, &alive);
 
@@ -70,6 +72,9 @@ int main(void) {
         MY_CHK(tr_ctx_render(&ctx));
     }
     tr_close_alt();
+
+    if (alive)
+        printf("Something went wrong: %d\n", r);
 
     return 0;
 }
