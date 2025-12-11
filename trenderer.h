@@ -267,7 +267,7 @@ TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg
 // ----------------------------------------------------------------------------
 TR_API TrResult tr_draw_sprite(TrCellSpan sprite, int x, int y);                                              // Draw a sprite on the screen.
 TR_API TrResult tr_draw_spritesheet(TrCellSpan ss, int spr_x, int spr_y, int spr_w, int spr_h, int x, int y); // Draw a sprite from a spritesheet on the screen.
-TR_API TrResult tr_draw_text(const char *text, TrStyle style, int x, int y);                                  // Draw a string on the screen.
+TR_API TrResult tr_draw_text(const char *text, TrStyle style, int x, int y);                                  // Draw a string on the screen. WE GOTTA KILL THIS BIH
 // ----------------------------------------------------------------------------
 // ============================================================================
 
@@ -889,23 +889,29 @@ static void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, 
         }
     }
 }
-static bool tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len) {
-    if (memcmp(ctx->front.letter + idx, ctx->back.letter + idx, len * sizeof(char)) != 0)
-        return false;
+// RETURN: -2: different / -1: same / 0 or positive: the index of differece
+static int tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len) {
+    if (idx < 0)
+        return -2;
 
-    if (memcmp(ctx->front.effects + idx, ctx->back.effects + idx, len * sizeof(TrEffect)) != 0)
-        return false;
+    if (memcmp(&ctx->front.effects[idx], &ctx->back.effects[idx], len * sizeof(TrEffect)) != 0)
+        return -2;
 
-    if (memcmp(ctx->front.fg + idx, ctx->back.fg + idx, len * sizeof(uint32_t)) != 0)
-        return false;
+    if (memcmp(&ctx->front.fg[idx], &ctx->back.fg[idx], len * sizeof(uint32_t)) != 0)
+        return -2;
 
-    if (memcmp(ctx->front.bg + idx, ctx->back.bg + idx, len * sizeof(uint32_t)) != 0)
-        return false;
+    if (memcmp(&ctx->front.bg[idx], &ctx->back.bg[idx], len * sizeof(uint32_t)) != 0)
+        return -2;
 
-    return true;
+    for (int i = idx; i < idx + (int)len; i += 1) {
+        if (memcmp(&ctx->front.letter[i], &ctx->back.letter[i], TR_MAX_UTF8_LEN * sizeof(char)) != 0)
+            return i % ctx->width;
+    }
+
+    return -1;
 }
 static bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx) {
-    if (ctx->front.letter[idx] != ctx->back.letter[idx])
+    if (idx < 0)
         return false;
 
     if (ctx->front.effects[idx] != ctx->back.effects[idx])
@@ -915,6 +921,9 @@ static bool tr_priv_ctx_cmp(const TrRenderContext *ctx, int idx) {
         return false;
 
     if (ctx->front.bg[idx] != ctx->back.bg[idx])
+        return false;
+
+    if (memcmp(&ctx->front.letter[idx], &ctx->back.letter[idx], TR_MAX_UTF8_LEN * sizeof(char)) != 0)
         return false;
 
     return true;
@@ -928,8 +937,16 @@ static void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, cons
     for (int row = 0; row < ctx->height; row += 1) {
         int fb_row_base = 0 + row * ctx->width; // [fb_row_base] == [row][0]
 
-        if (tr_priv_ctx_memcmp(ctx, fb_row_base, (size_t)(ctx->width)))
+        int res = tr_priv_ctx_memcmp(ctx, fb_row_base, (size_t)(ctx->width));
+        if (res == -1)
             continue;
+
+        else if (res >= 0) {
+            if (left > res)
+                left = res;
+            if (right < res)
+                right = res;
+        }
 
         for (int col = 0; col < ctx->width; col += 1) {
             int fb_idx = col + fb_row_base; // [fb_idx] == [row][col]
@@ -939,13 +956,13 @@ static void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, cons
 
             if (left > col)
                 left = col;
-            if (top > row)
-                top = row;
             if (right < col)
                 right = col;
-            if (bottom < row)
-                bottom = row;
         }
+        if (top > row)
+            top = row;
+        if (bottom < row)
+            bottom = row;
     }
     if (left > right || top > bottom) {
         *x = 0;
@@ -1002,12 +1019,16 @@ TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int h
 TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg) {
     tr_fill_buf(tr_ftos(&ctx->back, ctx->width, ctx->height), bg);
 }
+#include <Windows.h>
 TR_API TrResult tr_ctx_render(TrRenderContext *ctx) {
     int dirty_rect_x = 0, dirty_rect_y = 0;
     int dirty_rect_w = 0, dirty_rect_h = 0;
     tr_priv_get_dirty_rect(&dirty_rect_x, &dirty_rect_y, &dirty_rect_w, &dirty_rect_h, ctx);
     if (dirty_rect_w <= 0 || dirty_rect_h <= 0)
         return TR_OK;
+
+    if (dirty_rect_y == 1)
+        SetConsoleTitle("Hell no!");
 
     // Draw only dirty rectangle.
     TR_CHK(tr_draw_spritesheet(tr_ftos(&ctx->back, ctx->width, ctx->height), dirty_rect_x, dirty_rect_y, dirty_rect_w, dirty_rect_h, ctx->x + dirty_rect_x, ctx->y + dirty_rect_y));
@@ -1024,26 +1045,26 @@ TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, 
     if (color == TR_TRANSPARENT)
         return TR_OK;
 
-    int visible_width = 0;
+    int visible_cols = 0;
     int _0 = 0; // placeholder
-    tr_priv_get_visible(&visible_width, &_0, ctx->width, width, x);
-    if (visible_width <= 0)
+    tr_priv_get_visible(&visible_cols, &_0, ctx->width, width, x);
+    if (visible_cols <= 0)
         return TR_OK;
 
-    int visible_height = 0;
+    int visible_rows = 0;
     int _1 = 0; // placeholder
-    tr_priv_get_visible(&visible_height, &_1, ctx->width, height, y);
-    if (visible_height <= 0)
+    tr_priv_get_visible(&visible_rows, &_1, ctx->width, height, y);
+    if (visible_rows <= 0)
         return TR_OK;
 
     int fb_base = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width; // [fb_base] == [y or 0][x or 0]
 
-    for (int row = 0; row < visible_height; row += 1) {
+    for (int row = 0; row < visible_rows; row += 1) {
         int fb_row_base = fb_base + row * ctx->width; // [fb_row_base] == [y + row][x]
 
-        memset(&ctx->back.effects[fb_row_base], TR_DEFAULT_EFFECT, (size_t)visible_width * sizeof(TrEffect));
+        memset(&ctx->back.effects[fb_row_base], TR_DEFAULT_EFFECT, (size_t)visible_cols * sizeof(TrEffect));
 
-        for (int col = 0; col < visible_width; col += 1) {
+        for (int col = 0; col < visible_cols; col += 1) {
             int idx = col + fb_row_base; // [idx] == [y + row][x + col]
 
             strcpy(ctx->back.letter[idx], " ");
@@ -1058,29 +1079,29 @@ TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int 
     if (sprite.width <= 0 || sprite.height <= 0)
         return TR_ERR_BAD_ARG;
 
-    int visible_width = 0;
+    int visible_cols = 0;
     int spr_col = 0;
-    tr_priv_get_visible(&visible_width, &spr_col, ctx->width, sprite.width, x);
-    if (visible_width <= 0)
+    tr_priv_get_visible(&visible_cols, &spr_col, ctx->width, sprite.width, x);
+    if (visible_cols <= 0)
         return TR_OK;
 
-    int visible_height = 0;
+    int visible_rows = 0;
     int spr_row = 0;
-    tr_priv_get_visible(&visible_height, &spr_row, ctx->height, sprite.height, y);
-    if (visible_height <= 0)
+    tr_priv_get_visible(&visible_rows, &spr_row, ctx->height, sprite.height, y);
+    if (visible_rows <= 0)
         return TR_OK;
 
     int fb_base = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width; // [fb_base] == [y or 0][x or 0]
     int spr_base = spr_col + spr_row * sprite.width;              // [spr_base] == [spr_row][spr_col]
 
-    for (int row = 0; row < visible_height; row += 1) {
+    for (int row = 0; row < visible_rows; row += 1) {
         int fb_row_base = fb_base + row * ctx->width;     // [fb_row_base] == [y + row][x]
         int spr_row_base = spr_base + row * sprite.width; // [spr_row_base] == [spr_row + row][spr_col]
 
-        memcpy(&ctx->back.letter[fb_row_base], &sprite.letter[spr_row_base], (size_t)visible_width * TR_MAX_UTF8_LEN);
-        memcpy(&ctx->back.effects[fb_row_base], &sprite.effects[spr_row_base], (size_t)visible_width * sizeof(TrEffect));
+        memcpy(&ctx->back.letter[fb_row_base], &sprite.letter[spr_row_base], (size_t)visible_cols * TR_MAX_UTF8_LEN);
+        memcpy(&ctx->back.effects[fb_row_base], &sprite.effects[spr_row_base], (size_t)visible_cols * sizeof(TrEffect));
 
-        for (int col = 0; col < visible_width; col += 1) {
+        for (int col = 0; col < visible_cols; col += 1) {
             int spr_idx = col + spr_row_base; // [spr_idx] == [spr_row + row][spr_col + col]
 
             if (sprite.fg[spr_idx] != TR_TRANSPARENT) {
@@ -1098,19 +1119,19 @@ TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int 
 
     return TR_OK;
 }
-TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y) {
-    if (len <= 0 || y < 0 || y >= ctx->height)
+TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t text_len, TrStyle style, int x, int y) {
+    if (text_len <= 0 || y < 0 || y >= ctx->height)
         return TR_ERR_BAD_ARG;
 
-    int visible_len = 0;
-    int text_idx = 0;
-    tr_priv_get_visible(&visible_len, &text_idx, ctx->width, (int)len, x);
-    if (visible_len <= 0)
+    int visible_cells = 0;
+    int text_codepoint_idx = 0;
+    tr_priv_get_visible(&visible_cells, &text_codepoint_idx, ctx->width, (int)text_len, x);
+    if (visible_cells <= 0)
         return TR_OK;
 
     int fb_base = (x > 0 ? x : 0) + (y > 0 ? y : 0) * ctx->width; // [fb_base] == [y or 0][x or 0]
 
-    for (int col = 0; col < visible_len; col += 1) {
+    for (int col = 0; col < visible_cells; col += 1) {
         int fb_idx = col + fb_base; // [fb_idx] == [y][x + col]
 
         if (text[col] == '\0')

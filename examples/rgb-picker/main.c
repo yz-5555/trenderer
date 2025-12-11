@@ -66,7 +66,7 @@ TrResult draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
         .effects = idx == target ? TR_UNDERLINE : TR_DEFAULT_EFFECT
     };
 
-    return tr_ctx_draw_text(ctx, str, STR_LEN, style, pos, 0);
+    return tr_ctx_draw_text(ctx, str, strlen(str), style, pos, 0);
 }
 void process_input(uint8_t *rgb, int *target, bool *alive) {
     int key = _kbhit() ? _getch() : 0;
