@@ -3,7 +3,7 @@
 
 /* ============================================================================
  *
- * trenderer v0.3.2
+ * trenderer v0.4.0
  *     NOTES:
  *         This is a single-header library. Declaration and definition of functions are both inside this file.
  *         They are completely separated with TR_IMPLEMENTATION. There are no inline functions for coherent structure.
@@ -267,7 +267,7 @@ TR_API TrResult tr_strcat_set_bg(char *dst, size_t len, size_t *idx, uint32_t bg
 // ----------------------------------------------------------------------------
 TR_API TrResult tr_draw_sprite(TrCellSpan sprite, int x, int y);                                              // Draw a sprite on the screen.
 TR_API TrResult tr_draw_spritesheet(TrCellSpan ss, int spr_x, int spr_y, int spr_w, int spr_h, int x, int y); // Draw a sprite from a spritesheet on the screen.
-TR_API TrResult tr_draw_text(const char *text, TrStyle style, int x, int y);                                  // Draw a string on the screen. WE GOTTA KILL THIS BIH
+TR_API TrResult tr_draw_text(const char *text, TrStyle style, int x, int y);                                  // Draw a string on the screen.
 // ----------------------------------------------------------------------------
 // ============================================================================
 
@@ -889,8 +889,7 @@ static void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, 
         }
     }
 }
-// RETURN: -2: different / -1: same / 0 or positive: the index of differece
-static int tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len) {
+static int tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len) { // RETURN: -2: different / -1: same / 0 or positive: the index of differece
     if (idx < 0)
         return -2;
 
@@ -905,7 +904,7 @@ static int tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len) {
 
     for (int i = idx; i < idx + (int)len; i += 1) {
         if (memcmp(&ctx->front.letter[i], &ctx->back.letter[i], TR_MAX_UTF8_LEN * sizeof(char)) != 0)
-            return i % ctx->width;
+            return i;
     }
 
     return -1;
@@ -938,27 +937,29 @@ static void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, cons
         int fb_row_base = 0 + row * ctx->width; // [fb_row_base] == [row][0]
 
         int res = tr_priv_ctx_memcmp(ctx, fb_row_base, (size_t)(ctx->width));
-        if (res == -1)
+        if (res == -1) // CASE 1: No differences found in the row.
             continue;
 
-        else if (res >= 0) {
-            if (left > res)
-                left = res;
-            if (right < res)
-                right = res;
-        }
+        else if (res == -2) { // CASE 2: Differences found in effects, fg, bg.
+            for (int col = 0; col < ctx->width; col += 1) {
+                int fb_idx = col + fb_row_base; // [fb_idx] == [row][col]
 
-        for (int col = 0; col < ctx->width; col += 1) {
-            int fb_idx = col + fb_row_base; // [fb_idx] == [row][col]
+                if (tr_priv_ctx_cmp(ctx, fb_idx))
+                    continue;
 
-            if (tr_priv_ctx_cmp(ctx, fb_idx))
-                continue;
-
+                if (left > col)
+                    left = col;
+                if (right < col)
+                    right = col;
+            }
+        } else if (res >= 0) { // CASE 3: Differneces found in letter.
+            int col = res % ctx->width;
             if (left > col)
                 left = col;
             if (right < col)
                 right = col;
         }
+
         if (top > row)
             top = row;
         if (bottom < row)
@@ -984,8 +985,8 @@ static void tr_priv_ctx_swap(TrRenderContext *ctx) {
     memcpy(ctx->front.fg, ctx->back.fg, len * sizeof(uint32_t));
     memcpy(ctx->front.bg, ctx->back.bg, len * sizeof(uint32_t));
 }
-static int tr_utf8_codepoint_len(const char *str) {
-    uint8_t b = (uint8_t)*str;
+static int tr_priv_utf8_codepoint_len(const char *letter) {
+    uint8_t b = (uint8_t)*letter;
     if (b < 0x80)
         return 1;
     if ((b & 0xE0) == 0xC0)
@@ -1019,16 +1020,12 @@ TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int h
 TR_API void tr_ctx_clear(TrRenderContext *ctx, uint32_t bg) {
     tr_fill_buf(tr_ftos(&ctx->back, ctx->width, ctx->height), bg);
 }
-#include <Windows.h>
 TR_API TrResult tr_ctx_render(TrRenderContext *ctx) {
     int dirty_rect_x = 0, dirty_rect_y = 0;
     int dirty_rect_w = 0, dirty_rect_h = 0;
     tr_priv_get_dirty_rect(&dirty_rect_x, &dirty_rect_y, &dirty_rect_w, &dirty_rect_h, ctx);
     if (dirty_rect_w <= 0 || dirty_rect_h <= 0)
         return TR_OK;
-
-    if (dirty_rect_y == 1)
-        SetConsoleTitle("Hell no!");
 
     // Draw only dirty rectangle.
     TR_CHK(tr_draw_spritesheet(tr_ftos(&ctx->back, ctx->width, ctx->height), dirty_rect_x, dirty_rect_y, dirty_rect_w, dirty_rect_h, ctx->x + dirty_rect_x, ctx->y + dirty_rect_y));
