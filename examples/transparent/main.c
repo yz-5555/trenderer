@@ -4,8 +4,8 @@
 #define TR_IMPLEMENTATION
 #include "trenderer.h"
 
-#include <Windows.h>
-#include <conio.h>
+#include "key-input.h"
+
 #define ESC 27
 
 #define MY_CHK(x)         \
@@ -21,7 +21,7 @@ void fill_box(TrCellArray *box) {
     }
 }
 void process_input(int *pos_x, int *pos_y, bool *alive) {
-    int key = _kbhit() ? _getch() : 0;
+    int key = get_key();
 
     switch (key) {
     case 'w':
@@ -53,9 +53,10 @@ int main(void) {
     TrRenderContext ctx;
     tr_ctx_init(&ctx, 0, 0, 20, 10);
 
+    tr_init_unicode();
+
     tr_open_alt();
     tr_hide_cursor();
-    SetConsoleOutputCP(CP_UTF8);
     TrResult r;
     while (alive) {
         process_input(&pos_x, &pos_y, &alive);

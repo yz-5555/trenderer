@@ -17,7 +17,7 @@
  *             Create the implementation of the library. MUST BE DEFINED IN ONE SOURCE FILE BEFORE INCLUDING THE HEADER.
  *
  *         #define TR_NO_RENDERER
- *             Exclude renderer related types, functions, constants. Include only IO related.
+ *             Exclude renderer related types, functions, and constants.
  *
  *         #define TR_MAX_CELL_ARRAY_LEN 64
  *             The length of `TrCellArray`. The default value is 64 and you can define other value before you include the header.
@@ -310,6 +310,11 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height); // Stan
 // ----------------------------------------------------------------------------
 TR_API void tr_fill_buf(TrCellSpan buf, uint32_t bg); // Clear a cell buffer
 // ----------------------------------------------------------------------------
+
+// Unicode
+// ----------------------------------------------------------------------------
+TR_API void tr_init_unicode(void);
+// ----------------------------------------------------------------------------
 // ============================================================================
 #endif // TR_NO_RENDERER
 
@@ -384,8 +389,7 @@ static const char *tr_priv_effects_ansi[] = {
     // TR_PRIV_RESET_EFFECTS_IDX
     "\x1b[22;23;24;25;27;28;29m",
     // TR_PRIV_RESET_ALL_IDX
-    "\x1b[0m"
-};
+    "\x1b[0m"};
 TR_API void tr_add_effects(TrEffect effects) {
     if (effects == TR_DEFAULT_EFFECT) {
         tr_reset_effects();
@@ -417,14 +421,12 @@ static const char *tr_priv_fg_ansi[] = {
     // fg
     "\x1b[%dm",
     "\x1b[38;5;%dm",
-    "\x1b[38;2;%d;%d;%dm"
-};
+    "\x1b[38;2;%d;%d;%dm"};
 static const char *tr_priv_bg_ansi[] = {
     // fg
     "\x1b[%dm",
     "\x1b[48;5;%dm",
-    "\x1b[48;2;%d;%d;%dm"
-};
+    "\x1b[48;2;%d;%d;%dm"};
 TR_API TrResult tr_set_fg(uint32_t fg) {
     if (fg == TR_TRANSPARENT || !tr_valid_color(fg))
         return TR_ERR_BAD_ARG;
@@ -985,18 +987,18 @@ static void tr_priv_ctx_swap(TrRenderContext *ctx) {
     memcpy(ctx->front.fg, ctx->back.fg, len * sizeof(uint32_t));
     memcpy(ctx->front.bg, ctx->back.bg, len * sizeof(uint32_t));
 }
-static int tr_priv_utf8_codepoint_len(const char *letter) {
-    uint8_t b = (uint8_t)*letter;
-    if (b < 0x80)
-        return 1;
-    if ((b & 0xE0) == 0xC0)
-        return 2;
-    if ((b & 0xF0) == 0xE0)
-        return 3;
-    if ((b & 0xF8) == 0xF0)
-        return 4;
-    return 1;
-}
+// static int tr_priv_utf8_codepoint_len(const char *letter) {
+//     uint8_t b = (uint8_t)*letter;
+//     if (b < 0x80)
+//         return 1;
+//     if ((b & 0xE0) == 0xC0)
+//         return 2;
+//     if ((b & 0xF0) == 0xE0)
+//         return 3;
+//     if ((b & 0xF8) == 0xF0)
+//         return 4;
+//     return 1;
+// }
 // ----------------------------------------------------------------------------
 TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int height) {
     if (x < 0 || y < 0 || width <= 0 || height <= 0 || (width * height > TR_MAX_FRAMEBUFFER_LEN)) {
@@ -1158,8 +1160,7 @@ TR_API TrCellSpan tr_atos(TrCellArray *carr) {
         .fg = carr->fg,
         .bg = carr->bg,
         .width = carr->width,
-        .height = carr->height
-    };
+        .height = carr->height};
 }
 TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
     return (TrCellSpan){
@@ -1168,8 +1169,7 @@ TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height) {
         .fg = fb->fg,
         .bg = fb->bg,
         .width = width,
-        .height = height
-    };
+        .height = height};
 }
 // ----------------------------------------------------------------------------
 
@@ -1188,6 +1188,28 @@ TR_API void tr_fill_buf(TrCellSpan buf, uint32_t bg) {
         buf.bg[i] = bg;
     }
 }
+// ----------------------------------------------------------------------------
+
+// Unicode
+// ----------------------------------------------------------------------------
+#if defined(_WIN32) || defined(_WIN64)
+
+#include <Windows.h>
+
+TR_API void tr_init_unicode(void) {
+    SetConsoleOutputCP(CP_UTF8);
+}
+
+#else
+
+#include <locale.h>
+
+TR_API void tr_init_unicode(void) {
+    setlocale(LC_ALL, "");
+}
+
+#endif // defined(_WIN32) || defined(_WIN64)
+// ----------------------------------------------------------------------------
 // ============================================================================
 #endif // TR_NO_RENDERER
 

@@ -1,7 +1,7 @@
 #define TR_IMPLEMENTATION
 #include "trenderer.h"
 
-#include <conio.h>
+#include "key-input.h"
 #define ESC 27
 
 #include <stdio.h>
@@ -63,13 +63,12 @@ TrResult draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
     TrStyle style = {
         .fg = TR_DEFAULT_COLOR_16,
         .bg = TR_DEFAULT_COLOR_16,
-        .effects = idx == target ? TR_UNDERLINE : TR_DEFAULT_EFFECT
-    };
+        .effects = idx == target ? TR_UNDERLINE : TR_DEFAULT_EFFECT};
 
     return tr_ctx_draw_text(ctx, str, strlen(str), style, pos, 0);
 }
 void process_input(uint8_t *rgb, int *target, bool *alive) {
-    int key = _kbhit() ? _getch() : 0;
+    int key = get_key();
 
     switch (key) {
     case 'w':
