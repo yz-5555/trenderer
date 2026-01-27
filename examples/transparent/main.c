@@ -1,4 +1,6 @@
-#define TR_MAX_CELL_ARRAY_LEN 9
+// ki_XXX functions are not from trenderer. Check ./examples/utils/key-input.h
+
+#define TR_MAX_CELL_ARRAY_LEN 9 // Customize the library however you want.
 #define TR_MAX_FRAMEBUFFER_LEN 200
 
 #define TR_IMPLEMENTATION
@@ -8,20 +10,22 @@
 
 #define ESC 27
 
-#define MY_CHK(x)         \
-    if ((r = x) != TR_OK) \
-    break
+#define MY_CHK(x)          \
+    do {                   \
+        if ((x) != TR_OK)  \
+            alive = false; \
+    } while (0)
 
 void fill_box(TrCellArray *box) {
     for (int i = 0; i < box->width * box->height; i += 1) {
-        strcpy(box->letter[i], "✓");
-        box->effects[i] = TR_BOLD | TR_ITALIC | TR_UNDERLINE | TR_STRIKETHROUGH;
+        strcpy(box->letter[i], "Д"); // Add unicode letters.
+        box->effects[i] = TR_BOLD | TR_ITALIC | TR_UNDERLINE | TR_STRIKETHROUGH; // Stack various effects easily.
         box->fg[i] = TR_BLACK_16;
         box->bg[i] = TR_TRANSPARENT;
     }
 }
 void process_input(int *pos_x, int *pos_y, bool *alive) {
-    int key = get_key();
+    int key = ki_get();
 
     switch (key) {
     case 'w':
@@ -53,29 +57,28 @@ int main(void) {
     TrRenderContext ctx;
     tr_ctx_init(&ctx, 0, 0, 20, 10);
 
-    tr_init_unicode();
+    tr_init(true); // Setup for unicode.
 
     tr_open_alt();
     tr_hide_cursor();
-    TrResult r;
+    ki_init();
     while (alive) {
         process_input(&pos_x, &pos_y, &alive);
 
         tr_ctx_clear(&ctx, TR_DEFAULT_COLOR_16);
 
         MY_CHK(tr_ctx_draw_rect(&ctx, 0, 0, 10, 5, TR_RED_16));
-        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 0, 10, 5, TR_ORANGE));
-        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 5, 10, 5, TR_BRIGHT_CYAN_256));
-        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 5, 10, 5, TR_WHITE_16));
+        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 0, 10, 5, TR_ORANGE));         // Use various
+        MY_CHK(tr_ctx_draw_rect(&ctx, 0, 5, 10, 5, TR_BRIGHT_CYAN_256)); // kinds of
+        MY_CHK(tr_ctx_draw_rect(&ctx, 10, 5, 10, 5, TR_WHITE_16));       // colors easily.
 
         MY_CHK(tr_ctx_draw_sprite(&ctx, tr_atos(&box), pos_x, pos_y));
 
         MY_CHK(tr_ctx_render(&ctx));
     }
+    ki_reset();
+	tr_show_cursor();
     tr_close_alt();
-
-    if (alive)
-        printf("Something went wrong: %d\n", r);
 
     return 0;
 }

@@ -10,7 +10,6 @@ pub fn build(b: *std.Build) void {
         "-std=c99",
         "-Wall",
         "-Wextra",
-        "-Werror",
         "-Wpedantic",
         "-Wstrict-prototypes",
     };

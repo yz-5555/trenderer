@@ -16,20 +16,10 @@ A minimal, portable single-header C library for terminals.
 ## Limitations
 - No widgets.
 - No input system.
-- No unicodes support.
+- Partial unicode support (Check comments in the codes).
 - No z-buffer support.
 - No transformations.
 - No 3D support.
-- No OS-specific validations.
-
-## Todo
-- [ ] Improved documents and comments.
-- [ ] More examples.
-- [ ] Unicodes supoort.
-- [ ] Z-buffer support.
-- [ ] Transformations.
-- [ ] 3D support.
-- [ ] OS-specific validations.
 
 ## Installation & Usage
 Just add `trenderer.h` to your project and it's good to go.
@@ -52,8 +42,10 @@ Check the comments in the header for detailed info.
 #include <stdio.h>
 
 int main(void) {
+    tr_init(false); // Flush old buffers to prevent unwanted output.
+
     tr_add_effects(TR_UNDERLINE | TR_BOLD); // Add effects.
-    tr_set_fg(tr_rgb(255, 0, 0));           // Set foreground color to red using rgb (True colors)
+    tr_set_fg(tr_rgb(255, 0, 0));           // Set foreground color to red using rgb(True colors).
     tr_set_bg(TR_BLUE_256);                 // Set background color to blue using ANSI 256.
     printf("Hello, ");
 
@@ -80,7 +72,9 @@ int main(void) {
     if (tr_ctx_init(&ctx, 0, 0, 50, 10) != TR_OK)
         return -1;
 
-    tr_open_alt(); // Open the alternative buffer
+    tr_init(false); // tr_init(true); if you want to use unicode.
+
+    tr_open_alt(); // Open the alternative buffer.
     tr_hide_cursor();
     while (1) {
         if (_kbhit() && _getch() == ESC)
@@ -88,15 +82,14 @@ int main(void) {
         
         if (tr_ctx_clear(&ctx, TR_WHITE_16) != TR_OK)
             break;
-
-        // Draw an orange rect in the middle.
-        if (tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE) != TR_OK)
+        
+        if (tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE) != TR_OK) // Draws an orange rect in the middle.
             break;
 
         if (tr_ctx_render(&ctx) != TR_OK)
             break;
     }
-    tr_close_alt(); // Close the alternative buffer
+    tr_close_alt(); // Closes the alternative buffer.
 
     return 0;
 }

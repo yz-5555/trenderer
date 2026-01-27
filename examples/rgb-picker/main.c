@@ -1,3 +1,5 @@
+// ki_XXX functions are not from trenderer. Check ./examples/utils/key-input.h 
+
 #define TR_IMPLEMENTATION
 #include "trenderer.h"
 
@@ -68,7 +70,7 @@ TrResult draw_color(TrRenderContext *ctx, uint8_t *rgb, int idx, int target) {
     return tr_ctx_draw_text(ctx, str, strlen(str), style, pos, 0);
 }
 void process_input(uint8_t *rgb, int *target, bool *alive) {
-    int key = get_key();
+    int key = ki_get();
 
     switch (key) {
     case 'w':
@@ -96,8 +98,11 @@ int main(void) {
     TrRenderContext ctx;
     tr_ctx_init(&ctx, 0, 0, 21, 5);
 
+    tr_init(false);
+
     tr_open_alt();
     tr_hide_cursor();
+    ki_init();
     while (alive) {
         process_input(rgb, &target, &alive);
 
@@ -111,6 +116,8 @@ int main(void) {
 
         MY_CHK(tr_ctx_render(&ctx));
     }
+    ki_reset();
+    tr_show_cursor();
     tr_close_alt();
 
     return 0;

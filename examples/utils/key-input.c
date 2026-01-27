@@ -4,38 +4,42 @@
 
 #include <conio.h>
 
-int get_key(void) {
-    if (_kbhit())
-        return _getch();
-
-    return 0;
+void ki_init(void) {}
+void ki_reset(void) {}
+int ki_get(void) {
+    return _kbhit() ? _getch() : 0;
 }
 
 #else
 
-#include <stdio.h>
+#include <fcntl.h>
 #include <termios.h>
 #include <unistd.h>
 
-struct termios tio;
+struct termios oldt;
 
-void begin(void) {
+void ki_init(void) {
+    tcgetattr(STDIN_FILENO, &oldt);
 
-    tcgetattr(STDIN_FILENO, &tio);
-    struct termios new_tio = tio;
-    new_tio.c_cflag &= (~ICANON & ~ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
+    struct termios newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    newt.c_cc[VMIN] = 0;
+    newt.c_cc[VTIME] = 0;
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
 }
-void end(void) {
-    tcsetattr(STDIN_FILENO, TCSANOW, &tio);
+void ki_reset(void) {
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 }
-int get_key(void) {
-    begin();
-
-    int ch = getchar();
-
-    end();
-
-    return ch;
+int ki_get(void) {
+    unsigned char ch;
+    // read() returns the number of bytes read
+    if (read(STDIN_FILENO, &ch, 1) == 1) {
+        return (int)ch;
+    }
+    return 0;
 }
 #endif
