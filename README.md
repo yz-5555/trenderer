@@ -80,14 +80,9 @@ int main(void) {
         if (_kbhit() && _getch() == ESC)
             break;
         
-        if (tr_ctx_clear(&ctx, TR_WHITE_16) != TR_OK)
-            break;
-        
-        if (tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE) != TR_OK) // Draws an orange rect in the middle.
-            break;
-
-        if (tr_ctx_render(&ctx) != TR_OK)
-            break;
+        if (tr_ctx_clear(&ctx, TR_WHITE_16);
+        tr_ctx_draw_rect(&ctx, 10, 3, 30, 4, TR_ORANGE); // Draws an orange rect in the middle.
+        tr_ctx_render(&ctx);
     }
     tr_close_alt(); // Closes the alternative buffer.
 
