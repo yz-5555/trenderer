@@ -14,10 +14,16 @@
  *
  *     DEFINES:
  *         #define TR_IMPLEMENTATION
- *             Create the implementation of the library. MUST BE DEFINED IN ONE SOURCE FILE BEFORE INCLUDING THE HEADER.
+ *             Creates the implementation of the library. MUST BE DEFINED IN ONE SOURCE FILE BEFORE INCLUDING THE HEADER. Defining this multiple times will produce symbol/linker errros. (ODR violation)
  *
  *         #define TR_NO_RENDERER
- *             Exclude renderer related types, functions, and constants.
+ *             Excludes renderer related types, functions, and constants. Non-renderer functions write directly to stdout.
+ *
+ *         #define TR_PRIVATE
+ *             Declares all functions as static, so they can only be accessed inside the file that contains the implementation.
+ *
+ *         #define TR_MALLOC [func] / #define TR_FREE [func]
+ *             Define custom functions to replace standard malloc and free.
  *
  *         #define TR_MAX_CELL_ARRAY_LEN 64
  *             The length of `TrCellArray`. The default value is 64 and you can define other value before you include the header.
@@ -37,9 +43,9 @@
 #ifndef TR_API
     #ifdef TR_PRIVATE
         #ifdef __cplusplus
-            #define TR_API inline
-        #else
             #define TR_API static inline
+        #else
+            #define TR_API static
         #endif
     #else
         #define TR_API extern
@@ -51,29 +57,28 @@
 extern "C" {
 #endif
 
-// Debug
+// Result
 // ============================================================================
 typedef enum TrResult {
     TR_OK,
     TR_ERR_BAD_ARG,
     TR_ERR_ALLOC_FAIL,
-    TR_ERR_BUF_OVERFLOW,
-    TR_ERR_OUT_OF_BOUNDS,
+    TR_ERR_BUF_OVERFLOW, // When the length of rendering text is longer than TR_MAX_RAW_BUFFER_LEN.
 } TrResult;
 
 // ============================================================================
 // Screen
 // ============================================================================
-TR_API void tr_clear(void);     // Clears the screen.
-TR_API void tr_open_alt(void);  // Enables alternative buffer.
-TR_API void tr_close_alt(void); // Disables alternative buffer.
+TR_API void tr_clear(void);
+TR_API void tr_open_alt(void);  // Enables alternative screen.
+TR_API void tr_close_alt(void); // Disables alternative screen.
 // ============================================================================
 
 // Cursor
 // ============================================================================
-TR_API void tr_move_cursor(int x, int y); // Sets position of cursor.
-TR_API void tr_show_cursor(void);         // Sets visibility of cursor.
-TR_API void tr_hide_cursor(void);         // Sets visibility of cursor.
+TR_API void tr_move_cursor(int x, int y); // Sets position of cursor. Negative params are ignored.
+TR_API void tr_show_cursor(void);
+TR_API void tr_hide_cursor(void);
 // ============================================================================
 
 // Effects
@@ -92,19 +97,20 @@ typedef enum TrEffect {
     TR_STRIKETHROUGH  = 1 << 7,
 } TrEffect;
 // clang-format on
-TR_API void tr_add_effects(TrEffect effects);    // Adds effects.
-TR_API void tr_remove_effects(TrEffect effects); // Removes effects.
-TR_API void tr_reset_effects(void);              // Resets the current effects to default value.
-TR_API void tr_reset_all(void);                  // Resets the current effects, colors to default value.
+TR_API void tr_add_effects(TrEffect effects);
+TR_API void tr_remove_effects(TrEffect effects);
+TR_API void tr_reset_effects(void);
+TR_API void tr_reset_all(void);
 // ============================================================================
 
 // Color
 // ============================================================================
-TR_API TrResult tr_set_fg(uint32_t fg); // Sets foreground color of current buffer.
-TR_API TrResult tr_set_bg(uint32_t bg); // Sets background color of current buffer.
+TR_API TrResult tr_set_fg(uint32_t fg);
+TR_API TrResult tr_set_bg(uint32_t bg);
 
 // Color - Utility functions
-// NOTE: Since these functions do NOT check if the color is valid or not, make sure to use `tr_valid_color` before passing the color if you manually created the color value.
+// These functions do NOT check if the color is valid or not, make sure to use `tr_valid_color` before passing the color if you manually created the color value.
+// High 8 bits contain color_mode and low 24 bits for color_code.
 // ----------------------------------------------------------------------------
 // clang-format off
 TR_API uint32_t tr_color_16(uint8_t color);              // Creates an ANSI 16 value.
@@ -196,7 +202,7 @@ TR_API bool     tr_valid_color(uint32_t color);          // Checks if the color 
 // clang-format on
 // ----------------------------------------------------------------------------
 
-#define TR_TRANSPARENT 0xFF // This is not a drawable value. It's only useful on `tr_ctx_XXX`.
+#define TR_TRANSPARENT 0xFF // This is not a drawable value. Use this only for `tr_ctx_XXX`.
 // ============================================================================
 
 #ifndef TR_NO_RENDERER
@@ -209,14 +215,14 @@ typedef struct TrStyle {
     TrEffect effects;
     uint32_t fg, bg;
 } TrStyle;
-TR_API TrStyle tr_default_style(void);                // Returns a default style.
-TR_API void tr_set_style(TrStyle style);              // Sets style of current buffer.
-TR_API void tr_copy_style(TrStyle *dst, TrStyle src); // Copies value of `src` into `dest`.
+TR_API TrStyle tr_default_style(void);
+TR_API void tr_set_style(TrStyle style); // Sets style of current buffer (stdout).
+TR_API void tr_copy_style(TrStyle *dst, TrStyle src);
 // ============================================================================
 
 // Cell
 // ============================================================================
-#define TR_MAX_UTF8_LEN 4
+#define TR_MAX_UTF8_LEN 4 // Length of a cell's UTF8 byte sequence including \0.
 
 typedef struct TrCell {
     char letter[TR_MAX_UTF8_LEN];
@@ -229,7 +235,7 @@ typedef struct TrCell {
     #define TR_MAX_CELL_ARRAY_LEN 64
 #endif
 // clang-format on
-typedef struct TrCellArray { // Array that holds `TrCell` in amount of `TR_MAX_CELL_ARRAY_LEN` in SoA style.
+typedef struct TrCellArray { // Fixed-size array that holds `TrCell` in amount of `TR_MAX_CELL_ARRAY_LEN` in SoA layout.
     char letter[TR_MAX_CELL_ARRAY_LEN][TR_MAX_UTF8_LEN];
     TrEffect effects[TR_MAX_CELL_ARRAY_LEN];
     uint32_t fg[TR_MAX_CELL_ARRAY_LEN], bg[TR_MAX_CELL_ARRAY_LEN];
@@ -237,7 +243,7 @@ typedef struct TrCellArray { // Array that holds `TrCell` in amount of `TR_MAX_C
 } TrCellArray;
 TR_API TrResult tr_carr_init(TrCellArray *carr, int width, int height);
 
-typedef struct TrCellVector { // Vector that holds `TrCell` in SoA style.
+typedef struct TrCellVector { // Heap-allocated vector that holds `TrCell` in SoA layout.
     char (*letter)[TR_MAX_UTF8_LEN];
     TrEffect *effects;
     uint32_t *fg, *bg;
@@ -265,7 +271,7 @@ TR_API TrResult tr_strcat_move_cursor(char *dst, size_t len, size_t *idx, int x,
 // ----------------------------------------------------------------------------
 TR_API TrResult tr_strcat_add_effects(char *dst, size_t len, size_t *idx, TrEffect effects);    // Appends a string that add effects to dst.
 TR_API TrResult tr_strcat_remove_effects(char *dst, size_t len, size_t *idx, TrEffect effects); // Appends a string that removes effects to dst.
-TR_API TrResult tr_strcat_reset_effects(char *dst, size_t len, size_t *idx);                    // Appends a string that resets current effects tp default value to dst.
+TR_API TrResult tr_strcat_reset_effects(char *dst, size_t len, size_t *idx);                    // Appends a string that resets current effects to default value to dst.
 TR_API TrResult tr_strcat_reset_all(char *dst, size_t len, size_t *idx);                        // Appends a string that resets current effects, colors to default value to dst.
 // ----------------------------------------------------------------------------
 
@@ -302,12 +308,12 @@ typedef struct TrRenderContext { // Render context for double-buffering. It hold
     int width, height;
 } TrRenderContext;
 // clang-format off
-TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int height);                            // Initializes the context.
-TR_API void     tr_ctx_clear(TrRenderContext *ctx, uint32_t bg);                                                   // Clears `back`.
+TR_API TrResult tr_ctx_init(TrRenderContext *ctx, int x, int y, int width, int height);
+TR_API void     tr_ctx_clear(TrRenderContext *ctx, uint32_t bg);                                                   // Clears `ctx.back`.
 TR_API TrResult tr_ctx_render(TrRenderContext *ctx);                                                               // Renders the result using dirty rectangles.
-TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color);       // Draws a rectangle on `back`.
-TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int x, int y);                         // Draws a sprite on `back`.
-TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y); // Draws a string on `back`. NOTE: unicode not supported
+TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, int height, uint32_t color);       // Draws a rectangle on `ctx.back`.
+TR_API TrResult tr_ctx_draw_sprite(TrRenderContext *ctx, TrCellSpan sprite, int x, int y);                         // Draws a sprite on `ctx.back`.
+TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t len, TrStyle style, int x, int y); // Draws a string on `ctx.back`. Only single-byte ASCII characters supported.
 // clang-format on
 // ============================================================================
 
@@ -316,17 +322,17 @@ TR_API TrResult tr_ctx_draw_text(TrRenderContext *ctx, const char *text, size_t 
 // Type conversion
 // ----------------------------------------------------------------------------
 TR_API TrCellSpan tr_atos(TrCellArray *carr);                            // Stands for `tr_array_to_span`. Convert `TrCellArray` to `TrCellSpan`.
-TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height); // Stands for `tr_framebuffer_to_span`. Convert `TrFrameBuffer` to `TrCellSpan`.
+TR_API TrCellSpan tr_ftos(TrFramebufferBase *fb, int width, int height); // Stands for `tr_framebuffer_to_span`. Convert `TrFramebufferBase` to `TrCellSpan`.
 // ----------------------------------------------------------------------------
 
 // Cell buffer
 // ----------------------------------------------------------------------------
-TR_API void tr_fill_buf(TrCellSpan buf, uint32_t bg); // Clears a cell buffer
+TR_API void tr_fill_buf(TrCellSpan buf, uint32_t bg); // Fill the buffers with default values and given background color.
 // ----------------------------------------------------------------------------
 
 // Terminal
 // ----------------------------------------------------------------------------
-TR_API void tr_init(bool unicode);
+TR_API void tr_init(bool unicode); // Flushes old buffers and setup unicode if `unicode` == true.
 // ----------------------------------------------------------------------------
 // ============================================================================
 #endif // TR_NO_RENDERER
@@ -336,8 +342,6 @@ TR_API void tr_init(bool unicode);
 #endif
 
 #endif // TR_H
-
-// #define TR_IMPLEMENTATION // MUST BE REMOVED BEFORE RELEASE!!!!!!!!!!!
 
 #ifdef TR_IMPLEMENTATION
 
@@ -402,7 +406,8 @@ static const char *tr_priv_effects_ansi[] = {
     // TR_PRIV_RESET_EFFECTS_IDX
     "\x1b[22;23;24;25;27;28;29m",
     // TR_PRIV_RESET_ALL_IDX
-    "\x1b[0m"};
+    "\x1b[0m",
+};
 TR_API void tr_add_effects(TrEffect effects) {
     if (effects == TR_DEFAULT_EFFECT) {
         tr_reset_effects();
@@ -434,12 +439,14 @@ static const char *tr_priv_fg_ansi[] = {
     // fg
     "\x1b[%dm",
     "\x1b[38;5;%dm",
-    "\x1b[38;2;%d;%d;%dm"};
+    "\x1b[38;2;%d;%d;%dm",
+};
 static const char *tr_priv_bg_ansi[] = {
     // fg
     "\x1b[%dm",
     "\x1b[48;5;%dm",
-    "\x1b[48;2;%d;%d;%dm"};
+    "\x1b[48;2;%d;%d;%dm",
+};
 TR_API TrResult tr_set_fg(uint32_t fg) {
     if (fg == TR_TRANSPARENT || !tr_valid_color(fg))
         return TR_ERR_BAD_ARG;
@@ -549,7 +556,6 @@ TR_API bool tr_valid_color(uint32_t color) {
         do {                           \
             TrResult _r;               \
             if ((_r = (x)) != TR_OK) { \
-		        /* printf("line: %d, func: %s, err: %d\n", __LINE__, __func__, _r); */ \
                 return _r;             \
 			}                          \
         } while (0)
@@ -904,7 +910,7 @@ static void tr_priv_get_visible(int *result_size, int *result_idx, int fb_size, 
         }
     }
 }
-static int tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len) { // RETURN: -2: same / -1: different / 0 or positive: the index of the cell that is differnet
+static int tr_priv_ctx_memcmp(const TrRenderContext *ctx, int idx, size_t len) { // Return values: -2 = entire row equal; -1 = difference detected; >=0 = index of the first cell in the region with a different letter.
     if (idx < 0)
         return -1;
 
@@ -967,7 +973,7 @@ static void tr_priv_get_dirty_rect(int *x, int *y, int *width, int *height, cons
                 if (right < col)
                     right = col;
             }
-        } else if (res >= 0) { // CASE 3: Differneces found in letter.
+        } else if (res >= 0) { // CASE 3: Differences found in letter.
             int col = res % ctx->width;
             if (left > col)
                 left = col;
@@ -1065,7 +1071,7 @@ TR_API TrResult tr_ctx_draw_rect(TrRenderContext *ctx, int x, int y, int width, 
     for (int row = 0; row < visible_rows; row += 1) {
         int fb_row_base = fb_base + row * ctx->width; // [fb_row_base] == [y + row][x]
 
-        memset(&ctx->back.effects[fb_row_base], TR_DEFAULT_EFFECT, (size_t)visible_cols * sizeof(TrEffect));
+        memset(&ctx->back.effects[fb_row_base], TR_DEFAULT_EFFECT, (size_t)visible_cols * sizeof(TrEffect)); // TR_DEFUALT_EFFECT == 0, ok to memset.
 
         for (int col = 0; col < visible_cols; col += 1) {
             int idx = col + fb_row_base; // [idx] == [y + row][x + col]
@@ -1186,7 +1192,7 @@ TR_API void tr_fill_buf(TrCellSpan buf, uint32_t bg) {
     for (size_t i = 0; i < len; i += 1) {
         strcpy(buf.letter[i], " ");
     }
-    memset(buf.effects, TR_DEFAULT_EFFECT, len * sizeof(TrEffect));
+    memset(buf.effects, TR_DEFAULT_EFFECT, len * sizeof(TrEffect)); // TR_DEFAULT_EFFECT == 0, ok to memset.
 
     for (size_t i = 0; i < len; i += 1) {
         buf.fg[i] = TR_DEFAULT_COLOR_16;

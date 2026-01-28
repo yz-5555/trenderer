@@ -15,6 +15,7 @@ A minimal, portable single-header C library for terminals.
 
 ## Limitations
 - No widgets.
+- Not thread-safe.
 - No input system.
 - Partial unicode support (Check comments in the codes).
 - No z-buffer support.
@@ -32,7 +33,7 @@ before you include `trenderer.h` **one** C or C++ file to create the implementat
 
 Check the comments in the header for detailed info.
 
-## Basic example
+## Basic examples
 ### Easy and simple ANSI usage
 ```c
 #define TR_NO_RENDERER
