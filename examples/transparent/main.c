@@ -18,7 +18,7 @@
 
 void fill_box(TrCellArray *box) {
     for (int i = 0; i < box->width * box->height; i += 1) {
-        strcpy(box->letter[i], "Д"); // Add unicode letters.
+        strcpy(box->letter[i], "Ф"); // Add unicode letters.
         box->effects[i] = TR_BOLD | TR_ITALIC | TR_UNDERLINE | TR_STRIKETHROUGH; // Stack various effects easily.
         box->fg[i] = TR_BLACK_16;
         box->bg[i] = TR_TRANSPARENT;

@@ -11,6 +11,7 @@ pub fn build(b: *std.Build) void {
         "-Wall",
         "-Wextra",
         "-Wpedantic",
+        "-Wno-deprecated-declarations",
         "-Wstrict-prototypes",
     };
 

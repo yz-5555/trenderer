@@ -216,7 +216,7 @@ typedef struct TrStyle {
     uint32_t fg, bg;
 } TrStyle;
 TR_API TrStyle tr_default_style(void);
-TR_API void tr_set_style(TrStyle style); // Sets style of current buffer (stdout).
+TR_API void tr_set_style(TrStyle style);
 TR_API void tr_copy_style(TrStyle *dst, TrStyle src);
 // ============================================================================
 

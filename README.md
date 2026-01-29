@@ -17,7 +17,7 @@ A minimal, portable single-header C library for terminals.
 - No widgets.
 - Not thread-safe.
 - No input system.
-- Partial unicode support (Check comments in the codes).
+- Partial unicode support. Wide characters and emojis are not supported.
 - No z-buffer support.
 - No transformations.
 - No 3D support.
